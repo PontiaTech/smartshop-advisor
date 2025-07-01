@@ -1,5 +1,5 @@
 
-# SmartShop Advisor – Agente 
+# SmartShop Advisor – Agent 
 
 Asistente inteligente que recomienda productos a partir de un texto
 
