@@ -10,7 +10,7 @@ DB_USER = os.getenv('DB_USER', 'user')
 DB_PASSWORD = os.getenv('DB_PASSWORD', 'password')
 DB_NAME = os.getenv('DB_NAME', 'smartshop_db')
 
-# Las variables habría que declararlas en github (o en un .env local) y en el YAML para mayor seguridad
+# Las variables hay que declararlas en github (o en un .env local) y en el YAML 
 SSA_DATABASE_URL = "postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}}.db"  
 
 engine = create_engine(SSA_DATABASE_URL)
