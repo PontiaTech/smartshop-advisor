@@ -1,3 +1,7 @@
 fastapi
+pydantic
+pydantic_core
+SQLAlchemy
 uvicorn
 python-multipart
+
