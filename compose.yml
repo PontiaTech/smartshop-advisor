@@ -31,7 +31,7 @@ services:
 
     container_name: ssa-backend
     build:
-      context: ./backend
+      context: ./app/backend
       dockerfile: Dockerfile
     
     ports: 
@@ -65,7 +65,7 @@ services:
   frontend:
     container_name: SSA-frontend
     build:
-      context: ./frontend
+      context: ./app/frontend
       dockerfile: Dockerfile
     ports:
       - "3000:80"
