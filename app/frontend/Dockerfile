@@ -4,11 +4,11 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copiamos dependencias primero para aprovechar la cache de Docker
-COPY frontend/package*.json ./
+COPY package*.json ./
 RUN npm install
 
 # Copiamos el resto del código
-COPY frontend/ .
+COPY . .
 
 # Compilamos para producción (crea /app/dist o /app/build según framework)
 RUN npm run build
