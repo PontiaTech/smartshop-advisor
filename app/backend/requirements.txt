@@ -13,4 +13,6 @@ openai>=1.90.0
 plotly>=6.1.2
 python-dotenv>=1.1.0
 requests>=2.32.4
+sqlmodel
+psycopg[binary] # postgres con python
 
