@@ -4,6 +4,10 @@ from typing import List
 
 app = FastAPI()
 
+@app.get("/health")
+def health():
+    return {"ok": True}
+
 class SearchTextInput(BaseModel):
     query: str
 

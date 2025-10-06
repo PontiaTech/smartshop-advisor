@@ -7,13 +7,13 @@ services:
       - 5432:5432
 
     env_file:
-      - .env.ssa-db_params
+      - ./ssa-db_params.env
 
     volumes: 
       - SSA_db_volume:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dbuser} -d ${POSTGRES_DB:-mydb} || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-dbuser} -d $${POSTGRES_DB:-mydb} || exit 1"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -40,7 +40,7 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000
 
     env_file:
-      - .env
+      - ./.env
     depends_on:
       db-service:
         condition: service_healthy
@@ -63,12 +63,19 @@ services:
       start_period: 10s
 
   frontend:
+    image: nginx:alpine
     container_name: SSA-frontend
-    build:
-      context: ./app/frontend
-      dockerfile: Dockerfile
     ports:
       - "3000:80"
+    volumes:
+      - ./app/frontend/src:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/index.html"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
 
 volumes:
   SSA_db_volume:
