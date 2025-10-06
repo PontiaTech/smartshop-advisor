@@ -1,0 +1,16 @@
+fastapi
+pydantic
+pydantic_core
+SQLAlchemy
+uvicorn
+python-multipart
+scikit-learn
+pandas
+google-genai>=1.21.1
+ipykernel>=6.29.5
+nbformat>=5.10.4
+openai>=1.90.0
+plotly>=6.1.2
+python-dotenv>=1.1.0
+requests>=2.32.4
+
