@@ -13,6 +13,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiamos contenido de la carpeta app al contenedor
 COPY app/ ./app/
 
+# Copiar el modelo al contenedor
+COPY classifier_model.pkl /app/classifier_model.pkl
+WORKDIR /app
+
+
 # Exponemos el puerto
 EXPOSE 8000
 
