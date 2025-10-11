@@ -1,3 +1,5 @@
 data/
 .env
+*.env
+.env.*
 ssa-db_params.env
