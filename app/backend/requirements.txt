@@ -1,11 +1,11 @@
-fastapi
-pydantic
-pydantic_core
-SQLAlchemy
-uvicorn
-python-multipart
-scikit-learn
-pandas
+fastapi>=0.110.0
+pydantic>=2.7.0
+pydantic_core>=2.18.0
+SQLAlchemy>=2.0.25
+uvicorn>=0.29.0
+python-multipart>=0.0.9
+scikit-learn>=1.3.0
+pandas>=2.0
 google-genai>=1.21.1
 ipykernel>=6.29.5
 nbformat>=5.10.4
@@ -14,5 +14,10 @@ plotly>=6.1.2
 python-dotenv>=1.1.0
 requests>=2.32.4
 sqlmodel
+chromadb>=0.5.0
+numpy<2.0
+sentence-transformers>=2.2.2
+kagglehub>=0.2.6
 psycopg[binary] # postgres con python
+
 

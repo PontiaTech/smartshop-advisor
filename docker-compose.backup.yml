@@ -1,0 +1,52 @@
+services:
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    container_name: chroma
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_ALLOW_RESET=true
+    volumes:
+      - ./chroma_db:/chroma/chromadb
+    networks:
+      - smartshopadvisor-net
+
+  db-smartshopadvisor:  
+    image: postgres:15
+    container_name: db-smartshopadvisor
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: smartshop_db
+    ports:
+      - "5432:5432"
+    networks:
+      - smartshopadvisor-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d smartshop_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-smartshopadvisor: 
+    build: .
+    ports:
+      - "8001:8000" 
+    container_name: api-smartshopadvisor
+    environment:
+      DB_HOST: db-smartshopadvisor
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: smartshop_db
+    depends_on:
+      db-smartshopadvisor:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    networks:
+      - smartshopadvisor-net
+
+networks:
+  smartshopadvisor-net:
+    driver: bridge

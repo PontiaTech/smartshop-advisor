@@ -19,6 +19,9 @@ services:
       retries: 15
       start_period: 5s
 
+    networks:
+      - smartshopadvisor-net
+
 
   # investigar un poco más redis y que necesita
   redis:
@@ -26,6 +29,20 @@ services:
     image: redis:7-alpine
     ports: 
       - 6379:6379
+    networks:
+      - smartshopadvisor-net
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    container_name: chroma
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_ALLOW_RESET=true
+    volumes:
+      - ./chroma_db:/chroma/chromadb
+    networks:
+      - smartshopadvisor-net
 
   backend:
 
@@ -61,6 +78,8 @@ services:
       timeout: 3s
       retries: 20
       start_period: 10s
+    networks:
+      - smartshopadvisor-net
 
   frontend:
     image: nginx:alpine
@@ -75,7 +94,12 @@ services:
       timeout: 3s
       retries: 3
     restart: unless-stopped
+    networks:
+      - smartshopadvisor-net
 
+networks:
+  smartshopadvisor-net:
+    driver: bridge
 
 volumes:
   SSA_db_volume:
