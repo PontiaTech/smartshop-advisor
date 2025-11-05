@@ -21,12 +21,14 @@ if not csv_path:
 print("✅ CSV encontrado en:", csv_path)
 
 # --- Leer CSV y limpiar ---
-df = pd.read_csv(csv_path, usecols=["productDisplayName", "articleType"]).fillna("")
-df = df[df["articleType"] != ""].reset_index(drop=True)
+df = pd.read_csv(csv_path, usecols=["productDisplayName", "articleType"]).dropna()
+df["productDisplayName"] = df["productDisplayName"].astype(str).str.strip()
+df["articleType"] = df["articleType"].astype(str).str.strip()
+df = df[df["productDisplayName"] != ""]
 print(f"📦 Total de registros cargados: {len(df)}")
 
-# --- Configuración ---
-EMB_MODEL = os.getenv("EMB_MODEL", "all-MiniLM-L6-v2")
+# --- Configuración de modelo y DB ---
+EMB_MODEL = os.getenv("EMB_MODEL", "clip-ViT-B-32")
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "products")
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
@@ -34,43 +36,58 @@ CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
 # --- Conectar a Chroma ---
 client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
-# --- Cargar modelo de embeddings ---
+# --- Cargar modelo CLIP multilingüe ---
 embedder = SentenceTransformer(EMB_MODEL)
-print(f"🧠 Modelo de embeddings cargado: {EMB_MODEL}")
+print(f"🧠 Modelo CLIP multi-idioma cargado: {EMB_MODEL}")
 
-# --- Crear o cargar colección ---
+# --- Verificar la dimensión del embedding ---
+test_emb = embedder.encode(["dimension test"], convert_to_numpy=True)
+embedding_dim = test_emb.shape[1]
+print(f"📏 Dimensión detectada del embedding: {embedding_dim}")
+
+# --- Reset colección si existe ---
 try:
-    collection = client.get_collection(COLLECTION_NAME)
-    print(f"✅ Colección '{COLLECTION_NAME}' encontrada con {collection.count()} items.")
-except Exception:
-    collection = client.create_collection(COLLECTION_NAME)
-    print(f"🆕 Colección '{COLLECTION_NAME}' creada desde cero.")
+    client.delete_collection(COLLECTION_NAME)
+    print("🗑️ Colección anterior eliminada")
+except:
+    print("ℹ️ No existía colección previa")
+
+# --- Crear colección en Chroma (sin dimension param para HTTP client) ---
+collection = client.create_collection(
+    name=COLLECTION_NAME,
+    metadata={"hnsw:space": "cosine"}  # similitud coseno
+)
+
+print(f"🆕 Colección '{COLLECTION_NAME}' creada para embeddings de dimensión {embedding_dim}")
+
 
 # --- Preparar datos ---
-texts = df.apply(lambda r: f"{r['articleType']} {r['productDisplayName']}", axis=1).tolist()
-ids = [str(uuid.uuid4()) for _ in range(len(texts))]
-metas = [{"articleType": str(r["articleType"]).strip()} for _, r in df.iterrows()]
+ids = [str(uuid.uuid4()) for _ in range(len(df))]
+documents = df["productDisplayName"].tolist()
+metas = [{"articleType": a} for a in df["articleType"].tolist()]
 
 # --- Generar embeddings ---
-print("🔹 Generando embeddings (puede tardar un poco)...")
-embeddings = embedder.encode(texts, batch_size=64, show_progress_bar=True).tolist()
+print("🔹 Generando embeddings CLIP...")
+embeddings = embedder.encode(
+    documents,
+    batch_size=64,
+    show_progress_bar=True,
+    convert_to_numpy=True
+).tolist()
+
+print(f"✅ Ejemplo de vector embedding: {embeddings[0][:5]} ...")
+print(f"📐 Dimensión validada: {len(embeddings[0])}")
 
 # --- Insertar en lotes ---
 BATCH_SIZE = 2000
-print("🚀 Iniciando inserción en ChromaDB...")
+print("🚀 Comenzando inserción a ChromaDB...")
 for i in range(0, len(ids), BATCH_SIZE):
-    batch_ids = ids[i:i+BATCH_SIZE]
-    batch_texts = texts[i:i+BATCH_SIZE]
-    batch_embs = embeddings[i:i+BATCH_SIZE]
-    batch_metas = metas[i:i+BATCH_SIZE]
-
     collection.add(
-        ids=batch_ids,
-        documents=batch_texts,
-        embeddings=batch_embs,
-        metadatas=batch_metas
+        ids=ids[i:i+BATCH_SIZE],
+        documents=documents[i:i+BATCH_SIZE],
+        embeddings=embeddings[i:i+BATCH_SIZE],
+        metadatas=metas[i:i+BATCH_SIZE]
     )
+    print(f"✅ Insertados {min(i+BATCH_SIZE, len(ids))}/{len(ids)} productos")
 
-    print(f"✅ Ingresados {len(batch_ids)} items (hasta {i + len(batch_ids)}/{len(ids)})")
-
-print(f"🎉 Inserción completada. Total: {collection.count()} items en la colección.")
+print(f"🎉 Carga completada. Total en colección: {collection.count()} items")

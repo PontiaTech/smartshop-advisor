@@ -1,0 +1,11 @@
+# Ignorar modelo pesado
+multilingual_clip_encoder/
+sbert_model/
+*.safetensors
+
+# Ignorar entornos virtuales
+.venv/
+
+# Ignorar cachés de Python
+__pycache__/
+*.pyc
