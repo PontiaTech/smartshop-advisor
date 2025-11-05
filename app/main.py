@@ -1,102 +1,113 @@
-from fastapi import FastAPI, UploadFile, File, Form
-from pydantic import BaseModel
-from typing import List, Optional
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Body
 from sentence_transformers import SentenceTransformer
 from PIL import Image
-import pickle
-import io
-import chromadb
-import numpy as np
-from typing import Optional
+import pickle, io, chromadb, numpy as np, json
+import traceback
 
-# --- Inicializar FastAPI ---
-app = FastAPI(title="SmartShop Search API", version="1.0")
+app = FastAPI(title="SmartShop Search API", version="2.0")
 
-# --- Cargar modelo y encoder ---
-print("Cargando modelo de clasificación y Sentence-BERT...")
-sbert = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+encoder = SentenceTransformer("clip-ViT-B-32")
+
+print("🚀 Booting API...")
+
+try:
+    encoder_dim = encoder.get_sentence_embedding_dimension()
+    print("✅ Encoder loaded — dim:", encoder_dim)
+except Exception as e:
+    print("❌ Encoder error at startup:", e)
+
 with open("classifier_model.pkl", "rb") as f:
     clf = pickle.load(f)
 
-# --- Inicializar cliente Chroma ---
-client = chromadb.HttpClient(host="chroma", port=8000)
+client = chromadb.HttpClient(host="localhost", port=8000)
 collection = client.get_collection("products")
 
-# --- Modelos de entrada ---
-class SearchInput(BaseModel):
-    query: Optional[str] = None
-    image_url: Optional[str] = None  # si prefieres subir, lo cambiamos por UploadFile
 
+def predict_article_type(query):
+    return clf.predict(encoder.encode([query]))[0]
 
-# --- Funciones auxiliares ---
-def predict_article_type(query: str) -> str:
-    emb = sbert.encode([query])
-    pred = clf.predict(emb)[0]
-    return pred
+def embed_text(q):
+    emb = encoder.encode([q], convert_to_numpy=True)[0]
+    print(f"📝 Text embedding shape: {emb.shape}") 
+    return emb.tolist()
 
-def get_text_embedding(query: str) -> List[float]:
-    return sbert.encode([query])[0].tolist()
+async def embed_image(file: UploadFile):
+    try:
+        # Leer bytes y convertir a imagen PIL
+        img_bytes = await file.read()
+        img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        emb = encoder.encode(img, convert_to_numpy=True)
+        print(f"🖼️ Image embedding shape: {emb.shape}")
+        return emb.tolist()
+    except Exception:
+        raise HTTPException(400, "Imagen inválida")
+ 
+    
 
-def get_image_embedding(image_bytes: bytes) -> List[float]:
-    # Usar CLIP si quieres algo real. Aquí placeholder:
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img_emb = np.random.rand(384).tolist()  # placeholder temporal
-    return img_emb
-
-def query_chroma(embedding: List[float], article_type: str, n_results: int = 3):
-    # Filtramos por label del modelo de clasificación
-    results = collection.query(
-        query_embeddings=[embedding],
-        n_results=n_results,
-        where={"articleType": article_type}  # filtra por tipo predicho
-    )
-    return results
-
-
-from fastapi import Body, UploadFile, File
-
-# --- ENDPOINTS ---
+# --- Endpoint solo texto ---
 @app.post("/search")
 async def search(
-    query: Optional[str] = Form(None),
-    image: Optional[UploadFile] = File(None)
+    query: str = Form(...),  # obligatorio ahora
+    history: str = Form("[]"),
+    body: dict = Body(None)
 ):
-    """
-    Endpoint multimodal (texto + imagen)
-    """
-    if not query and not image:
-        return {"error": "Debe proporcionar texto o imagen."}
+    # ✅ Fallback para JSON si llega body
+    if body:
+        query = body.get("query", query)
+        history = body.get("history", history)
 
-    # Si hay texto → predecir tipo de artículo
-    if query:
-        article_type = predict_article_type(query)
-        text_emb = get_text_embedding(query)
-    else:
-        article_type = "Other"
-        text_emb = None
+    print("\n===========================")
+    print("📩 Incoming request:")
+    print("query:", query)
+    print("history:", history)
 
-    # Si hay imagen → generar embedding
-    image_embedding = None
-    if image:
-        image_bytes = await image.read()
-        image_embedding = get_image_embedding(image_bytes)
+    # ✅ Parse history
+    try:
+        conv = json.loads(history) if history else []
+    except:
+        print("⚠️ Error parseando historial. Lo reseteo.")
+        conv = []
 
-    # Combinar embeddings
-    if text_emb and image_embedding:
-        combined_emb = [(t + i)/2 for t,i in zip(text_emb, image_embedding)]
-    elif text_emb:
-        combined_emb = text_emb
-    elif image_embedding:
-        combined_emb = image_embedding
+    if not query:
+        raise HTTPException(status_code=400, detail="Envía texto")
 
-    # Consultar Chroma
-    results = query_chroma(combined_emb, article_type)
+    try:
+        conv.append({"role": "user", "content": query})
 
-    # Formatear salida
-    hits = []
-    for doc, meta, dist in zip(results["documents"][0],
-                               results["metadatas"][0],
-                               results["distances"][0]):
-        hits.append({"name": doc, "metadata": meta, "similarity": float(dist)})
+        # ✅ Embeddings solo texto
+        text_emb = embed_text(query)
 
-    return {"predicted_article_type": article_type, "top_results": hits}
+        print(f"📦 Text embedding length before query: {len(text_emb)}")
+
+        # --- Predecir artículo ---
+        article = predict_article_type(query)
+        print(f"🧠 Predicted label: {article}")
+
+        # --- Query en Chroma ---
+        r = collection.query(
+            query_embeddings=[text_emb],
+            n_results=3,
+            where={"articleType": article}
+        )
+
+        results = []
+        for doc, meta, dist in zip(r["documents"][0], r["metadatas"][0], r["distances"][0]):
+            results.append({
+                "name": doc,
+                "metadata": meta,
+                "similarity": float(1 - dist)
+            })
+
+        print("✅ Response READY")
+        print("article:", article)
+        print("1st result:", results[0] if results else "No results")
+
+        return {
+            "predicted_article_type": article,
+            "top_results": results
+        }
+
+    except Exception as e:
+        print("❌ Exception in /search:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
