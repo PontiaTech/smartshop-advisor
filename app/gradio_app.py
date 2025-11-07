@@ -2,7 +2,9 @@ import gradio as gr
 import requests
 import json
 
-API_URL = "http://127.0.0.1:8000/search"
+#API_URL = "http://127.0.0.1:8001/search" #WHen testing manually
+API_URL = "http://localhost:8001/search" #from docker compose
+
 
 # Estado persistente de historial
 chat_history = []  # lista de dicts {role, content}
@@ -44,7 +46,7 @@ def chat_fn(message):
 
     reply = f"🛍️ Busqué *{message}* → categoría **{article}**\n\n"
     for r in results:
-        reply += f"• **{r['name']}** (sim {r['similarity']:.2f})\n"
+        reply += f"• **{r['name']}** (sim {r['similarity']:.2f} ->{r['link']})\n"
 
     chat_history.append({"role": "user", "content": message})
     chat_history.append({"role": "assistant", "content": reply})
@@ -54,7 +56,7 @@ def chat_fn(message):
 
 # ---- UI ----
 with gr.Blocks() as demo:
-    gr.Markdown("### 🧠 SmartShop Advisor — DEBUG MODE")
+    gr.Markdown("### 🧠 SmartShop Advisor")
 
     chatbox = gr.Chatbot(label="Chat", type="messages")
     txt = gr.Textbox(label="Escribe tu consulta", placeholder="Ej: Quiero botas blancas")
