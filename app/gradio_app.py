@@ -41,12 +41,12 @@ def chat_fn(message):
     if "error" in data:
         return [{"role": "assistant", "content": f"⚠️ Error API: {data['error']}"}]
 
-    results = data.get("top_results", [])
-    article = data.get("predicted_article_type", "")
+    results = data.get("resultados", [])
+    article = data.get("tipo_predicho", "")
 
     reply = f"🛍️ Busqué *{message}* → categoría **{article}**\n\n"
     for r in results:
-        reply += f"• **{r['name']}** (sim {r['similarity']:.2f} ->{r['link']})\n"
+        reply += f"• **{r['nombre']}** (sim {r['similitud']:.2f} ->{r['enlace']})\n"
 
     chat_history.append({"role": "user", "content": message})
     chat_history.append({"role": "assistant", "content": reply})
