@@ -7,5 +7,5 @@ sbert_model/
 .venv/
 
 # Ignorar cachés de Python
-__pycache__/
+**/__pycache__/
 *.pyc

@@ -7,8 +7,12 @@ WORKDIR /app
 # Copiamos archivos necesarios
 COPY requirements.txt .
 
-# Instalamos las dependencias
+# Instalar dependencias
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Descargar modelo de spaCy
+RUN python -m spacy download en_core_web_sm
+
 
 # Copiamos contenido de la carpeta app al contenedor
 COPY app/ ./app/
