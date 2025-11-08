@@ -1,102 +1,174 @@
-from fastapi import FastAPI, UploadFile, File, Form
-from pydantic import BaseModel
-from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Form, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from typing import List, Optional, Union
 from sentence_transformers import SentenceTransformer
-from PIL import Image
-import pickle
-import io
-import chromadb
-import numpy as np
-from typing import Optional
+import pickle, chromadb, numpy as np, traceback, spacy, json
 
-# --- Inicializar FastAPI ---
-app = FastAPI(title="SmartShop Search API", version="1.0")
+app = FastAPI(
+    title="🧠 API - SmartShop Advisor",
+    version="1.0",
+    description="""
+    API para realizar búsquedas inteligentes de productos de moda en una BBDD vectorial mediante embeddings y clasificación automática.
 
-# --- Cargar modelo y encoder ---
-print("Cargando modelo de clasificación y Sentence-BERT...")
-sbert = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    Funcionalidades principales:
+    - Genera embeddings de texto con CLIP.
+    - Clasifica el tipo de producto.
+    - Busca en ChromaDB los productos más similares.
+    - Soporta consultas encadenadas usando contexto previo.
+    """,
+    contact={
+        "name": "Equipo SmartShop Advisor",
+        "email": "soporte@smartshop.com",
+    },
+)
+
+# --- Carga de modelos ---
+encoder = SentenceTransformer("clip-ViT-B-32")
+
 with open("classifier_model.pkl", "rb") as f:
     clf = pickle.load(f)
 
-# --- Inicializar cliente Chroma ---
+# --- Conexión a Chroma ---
 client = chromadb.HttpClient(host="chroma", port=8000)
 collection = client.get_collection("products")
 
-# --- Modelos de entrada ---
-class SearchInput(BaseModel):
-    query: Optional[str] = None
-    image_url: Optional[str] = None  # si prefieres subir, lo cambiamos por UploadFile
+# --- Variables globales ---
+last_article_type = None
+last_embeddings = []
+last_query = ""
+
+# --- NLP ---
+nlp = spacy.load("en_core_web_sm")
 
 
 # --- Funciones auxiliares ---
-def predict_article_type(query: str) -> str:
-    emb = sbert.encode([query])
-    pred = clf.predict(emb)[0]
-    return pred
-
-def get_text_embedding(query: str) -> List[float]:
-    return sbert.encode([query])[0].tolist()
-
-def get_image_embedding(image_bytes: bytes) -> List[float]:
-    # Usar CLIP si quieres algo real. Aquí placeholder:
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img_emb = np.random.rand(384).tolist()  # placeholder temporal
-    return img_emb
-
-def query_chroma(embedding: List[float], article_type: str, n_results: int = 3):
-    # Filtramos por label del modelo de clasificación
-    results = collection.query(
-        query_embeddings=[embedding],
-        n_results=n_results,
-        where={"articleType": article_type}  # filtra por tipo predicho
-    )
-    return results
+def predecir_tipo_articulo(query: str) -> str:
+    """Predice el tipo de producto usando el clasificador entrenado."""
+    return clf.predict(encoder.encode([query]))[0]
 
 
-from fastapi import Body, UploadFile, File
+def generar_embedding(q: str) -> list:
+    """Convierte el texto en un vector de embedding."""
+    emb = encoder.encode([q], convert_to_numpy=True)[0]
+    return emb.tolist()
 
-# --- ENDPOINTS ---
-@app.post("/search")
+
+def tiene_sujeto(texto: str) -> bool:
+    """Detecta si el texto contiene un sujeto (para saber si es consulta nueva o seguimiento)."""
+    doc = nlp(texto)
+    return any(token.dep_ in ("nsubj", "nsubj_pass") for token in doc)
+
+
+# --- Modelos de entrada y salida ---
+class PeticionBusqueda(BaseModel):
+    query: str = Field(..., description="Texto que describe el producto o necesidad del usuario.")
+    history: Optional[List[str]] = Field(default_factory=list, description="Historial opcional de mensajes previos.")
+
+
+class ResultadoProducto(BaseModel):
+    nombre: str = Field(..., description="Nombre o identificador del producto.")
+    metadatos: dict = Field(..., description="Metadatos asociados al producto.")
+    similitud: float = Field(..., description="Nivel de similitud entre 0 y 1.")
+    enlace: str = Field(..., description="Enlace al producto o página relacionada.")
+
+
+class RespuestaBusqueda(BaseModel):
+    tipo_predicho: str = Field(..., description="Tipo de producto detectado por el modelo.")
+    resultados: List[ResultadoProducto] = Field(..., description="Productos más similares encontrados.")
+
+
+# --- Endpoint principal ---
+@app.post(
+    "/search",
+    response_model=RespuestaBusqueda,
+    summary="Buscar productos similares",
+    description="""
+    Endpoint principal de la API de búsqueda.  
+    Toma una consulta de texto, predice el tipo de producto y devuelve los resultados más similares
+    de la base de datos de Chroma.
+
+    - Si la consulta no tiene sujeto, se interpreta como **seguimiento de la búsqueda anterior**.  
+    - Si tiene sujeto, se considera una **nueva búsqueda**.
+    """,
+)
 async def search(
-    query: Optional[str] = Form(None),
-    image: Optional[UploadFile] = File(None)
+    request: Request,
+    query: Optional[str] = Form(None, description="Texto de la consulta (modo FormData o Swagger)."),
+    history: Optional[str] = Form("[]", description="Historial previo en formato JSON."),
 ):
     """
-    Endpoint multimodal (texto + imagen)
+    Compatible con:
+    - Swagger / Gradio → usan multipart/form-data.
+    - Postman u otros → pueden enviar JSON.
     """
-    if not query and not image:
-        return {"error": "Debe proporcionar texto o imagen."}
+    global last_article_type, last_query, last_embeddings
 
-    # Si hay texto → predecir tipo de artículo
-    if query:
-        article_type = predict_article_type(query)
-        text_emb = get_text_embedding(query)
-    else:
-        article_type = "Other"
-        text_emb = None
+    try:
+        # Intentar leer JSON directamente si viene en el cuerpo
+        if request.headers.get("content-type", "").startswith("application/json"):
+            data = await request.json()
+            query = data.get("query")
+            history = data.get("history", [])
+        else:
+            # Si viene por form-data (Swagger o Gradio)
+            history = json.loads(history) if history else []
 
-    # Si hay imagen → generar embedding
-    image_embedding = None
-    if image:
-        image_bytes = await image.read()
-        image_embedding = get_image_embedding(image_bytes)
+        if not query:
+            raise HTTPException(status_code=400, detail="Falta el parámetro 'query'.")
 
-    # Combinar embeddings
-    if text_emb and image_embedding:
-        combined_emb = [(t + i)/2 for t,i in zip(text_emb, image_embedding)]
-    elif text_emb:
-        combined_emb = text_emb
-    elif image_embedding:
-        combined_emb = image_embedding
+        # --- Embedding ---
+        emb_texto = generar_embedding(query)
+        print(f"📦 Longitud del embedding: {len(emb_texto)}")
 
-    # Consultar Chroma
-    results = query_chroma(combined_emb, article_type)
+        if last_embeddings and not tiene_sujeto(query):
+            print("No se detectó sujeto → combinando con el embedding anterior.")
+            comb_emb = 0.8 * np.array(emb_texto) + 0.2 * np.array(last_embeddings)
+        else:
+            print("Se detectó sujeto → nueva búsqueda.")
+            comb_emb = emb_texto
+            last_embeddings = emb_texto
 
-    # Formatear salida
-    hits = []
-    for doc, meta, dist in zip(results["documents"][0],
-                               results["metadatas"][0],
-                               results["distances"][0]):
-        hits.append({"name": doc, "metadata": meta, "similarity": float(dist)})
+        # --- Clasificación ---
+        if last_query and not tiene_sujeto(query):
+            consulta_completa = f"{last_query}. {query}"
+            articulo = predecir_tipo_articulo(consulta_completa)
+            print(f"Consulta combinada con la anterior: {consulta_completa}")
+        else:
+            articulo = predecir_tipo_articulo(query)
+            last_query = query
+        print(f"🧠 Tipo predicho: {articulo}")
 
-    return {"predicted_article_type": article_type, "top_results": hits}
+        # --- Búsqueda en Chroma ---
+        filtros = [articulo]
+        if last_article_type and last_article_type != articulo:
+            filtros.append(last_article_type)
+            print("También se usará el tipo anterior:", last_article_type)
+
+        last_article_type = articulo
+
+        r = collection.query(
+            query_embeddings=[comb_emb],
+            n_results=3,
+            where={"articleType": {"$in": filtros}},
+        )
+
+        resultados = [
+            ResultadoProducto(
+                nombre=doc,
+                metadatos=meta,
+                similitud=float(1 - dist),
+                enlace=f"https://{doc.replace(' ', '_')}.com",
+            )
+            for doc, meta, dist in zip(
+                r["documents"][0], r["metadatas"][0], r["distances"][0]
+            )
+        ]
+
+        return RespuestaBusqueda(tipo_predicho=articulo, resultados=resultados)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
