@@ -9,3 +9,12 @@ sbert_model/
 # Ignorar cachés de Python
 **/__pycache__/
 *.pyc
+
+# Ignorar los .envs
+
+ssa-db_params.env
+.env
+
+# Ignorar data
+
+data/
