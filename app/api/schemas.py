@@ -51,3 +51,14 @@ class ChatMessage(BaseModel):
     content: Optional[str] = Field(None, description="Text message content")
     image_url: Optional[HttpUrl] = Field(None, description="URL of the image sent")
 
+# A paula le funciona
+class ResultadoProducto(BaseModel):
+    nombre: str = Field(..., description="Nombre o identificador del producto.")
+    metadatos: dict = Field(..., description="Metadatos asociados al producto.")
+    similitud: float = Field(..., description="Nivel de similitud entre 0 y 1.")
+    enlace: str = Field(..., description="Enlace al producto o página relacionada.")
+
+
+class RespuestaBusqueda(BaseModel):
+    tipo_predicho: str = Field(..., description="Tipo de producto detectado por el modelo.")
+    resultados: List[ResultadoProducto] = Field(..., description="Productos más similares encontrados.")
