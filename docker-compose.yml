@@ -46,6 +46,27 @@ services:
         condition: service_started
     networks:
       - smartshopadvisor-net
+    
+  
+  ingest-smartshopadvisor:
+    build: .
+    container_name: ingest-smartshopadvisor
+    command: ["python", "app/database/ingest_db_to_chroma_mzz.py"]
+    env_file:
+      - .env
+    environment:
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - CHROMA_COLLECTION=products_all
+    depends_on:
+      chroma:
+        condition: service_started
+    networks:
+      - smartshopadvisor-net
+    volumes:
+      - .:/app
+    restart: "no"
+
 
 networks:
   smartshopadvisor-net:

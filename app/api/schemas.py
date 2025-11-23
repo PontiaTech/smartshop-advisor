@@ -62,3 +62,22 @@ class ResultadoProducto(BaseModel):
 class RespuestaBusqueda(BaseModel):
     tipo_predicho: str = Field(..., description="Tipo de producto detectado por el modelo.")
     resultados: List[ResultadoProducto] = Field(..., description="Productos más similares encontrados.")
+    
+    
+class CompleteSearchRequest(BaseModel):
+    query: str
+    top_k: int = 5
+
+
+class CompleteSearchProduct(BaseModel):
+    product_name: str
+    product_family: Optional[str] = None
+    description: Optional[str] = None
+    source: Optional[str] = None
+    url: Optional[str] = None
+    image: Optional[str] = None
+    score: float
+
+
+class CompleteSearchResponse(BaseModel):
+    results: List[CompleteSearchProduct]

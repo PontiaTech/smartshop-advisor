@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from sentence_transformers import SentenceTransformer
 import pickle, chromadb, numpy as np, traceback, spacy, json
+from app.api.services.product_search import complete_search
+from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse
 
 app = FastAPI(
     title="🧠 API - SmartShop Advisor",
@@ -172,3 +174,27 @@ async def search(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+
+
+@app.post("/complete_search", response_model=CompleteSearchResponse,summary="Búsqueda texto + imagen en productos")
+async def complete_search_endpoint(body: CompleteSearchRequest):
+    try:
+        results = complete_search(body.query, n_results=body.top_k)
+
+        api_results = [
+            CompleteSearchProduct(
+                product_name=r.get("product_name", ""),
+                product_family=r.get("product_family"),
+                description=r.get("description"),
+                source=r.get("source"),
+                url=r.get("url"),
+                image=r.get("image"),
+                score=float(r.get("clip_score", 0.0)),
+            )
+            for r in results
+        ]
+
+        return CompleteSearchResponse(results=api_results)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
