@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from sentence_transformers import SentenceTransformer
 import pickle, chromadb, numpy as np, traceback, spacy, json
+from app.api.services.product_search import complete_search
+from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse
+from chromadb.errors import NotFoundError
+import os
 
 app = FastAPI(
     title="🧠 API - SmartShop Advisor",
@@ -30,8 +34,30 @@ with open("classifier_model.pkl", "rb") as f:
     clf = pickle.load(f)
 
 # --- Conexión a Chroma ---
-client = chromadb.HttpClient(host="chroma", port=8000)
-collection = client.get_collection("products")
+# client = chromadb.HttpClient(host="chroma", port=8000)
+# collection = client.get_collection("products")
+
+
+CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
+CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
+CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "products_all")
+
+client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+
+def get_chroma_collection():
+    """
+    Devuelve la colección de Chroma. Si no existe, lanza un error claro
+    en vez de romper al importar el módulo.
+    """
+    try:
+        return client.get_collection(CHROMA_COLLECTION)
+    except NotFoundError:
+        # Aquí podrías hacer create_collection si quieres una vacía:
+        # return client.create_collection(CHROMA_COLLECTION)
+        raise RuntimeError(
+            f"La colección '{CHROMA_COLLECTION}' no existe en Chroma. "
+            f"Ejecuta primero el proceso de ingesta (ingest-smartshopadvisor)."
+        )
 
 # --- Variables globales ---
 last_article_type = None
@@ -147,6 +173,7 @@ async def search(
 
         last_article_type = articulo
 
+        collection = get_chroma_collection()
         r = collection.query(
             query_embeddings=[comb_emb],
             n_results=3,
@@ -172,3 +199,31 @@ async def search(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+
+
+# Pipeline multimodal con combinación de similitud semántica, similitud visual y clasificación de intención de usuario.
+@app.post("/complete_search", response_model=CompleteSearchResponse,summary="Búsqueda texto + imagen en productos")
+async def complete_search_endpoint(body: CompleteSearchRequest):
+    try:
+        result = complete_search(body.query, n_results=body.top_k)
+
+        predicted_type = result.get("predicted_type")
+        raw_results = result.get("results", [])
+
+        api_results = [
+            CompleteSearchProduct(
+                product_name=r.get("product_name", ""),
+                product_family=r.get("product_family"),
+                description=r.get("description"),
+                source=r.get("source"),
+                url=r.get("url"),
+                image=r.get("image"),
+                score=float(r.get("clip_score", 0.0)),
+            )
+            for r in raw_results
+        ]
+
+        return CompleteSearchResponse(predicted_type=predicted_type, results=api_results)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
