@@ -81,3 +81,4 @@ class CompleteSearchProduct(BaseModel):
 
 class CompleteSearchResponse(BaseModel):
     results: List[CompleteSearchProduct]
+    predicted_type: Optional[str] = None

@@ -39,6 +39,8 @@ services:
       DB_USER: user
       DB_PASSWORD: password
       DB_NAME: smartshop_db
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
     depends_on:
       db-smartshopadvisor:
         condition: service_healthy
