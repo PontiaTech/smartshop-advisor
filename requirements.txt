@@ -18,3 +18,5 @@ numpy<2.0
 sentence-transformers>=2.2.2
 kagglehub>=0.2.6
 spacy>=3.8.8
+prometheus-client>=0.23.1
+python-json-logger>=4.0.0

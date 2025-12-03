@@ -1,0 +1,41 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+    relabel_configs:
+      # Etiqueta de Compose Service
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service_name
+      # Nombre real del contenedor
+      - source_labels: [__meta_docker_container_name]
+        target_label: container_name
+      # ID del contenedor
+      - source_labels: [__meta_docker_container_id]
+        target_label: container_id
+      # Imagen del contenedor
+      - source_labels: [__meta_docker_container_image]
+        target_label: image
+      # Establecer job=docker para facilitar consultas en Grafana (paneles esperan job="docker")
+      - action: replace
+        target_label: job
+        replacement: "docker"
+    pipeline_stages:
+      - docker: {}
+      # Parse JSON logs emitted by the app and use their `timestamp` field
+      - json:
+          expressions:
+            ts: timestamp
+      - timestamp:
+          source: ts
+          format: RFC3339
