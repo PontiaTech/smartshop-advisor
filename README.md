@@ -12,9 +12,9 @@ Asistente inteligente que recomienda productos a partir de un texto
 1. Instalar dependencias:
 ```bash
 pip install -r requirements.txt
+```
 
-
-- Integración de logs: cualquier contenedor que escriba logs en `/var/lib/docker/containers` será recolectado por Promtail (si ejecutas en Linux). Para Windows/ Docker Desktop ajusta la ruta o usa el volumen `app_logs` si lo prefieres.
+2. Integración de logs: cualquier contenedor que escriba logs en `/var/lib/docker/containers` será recolectado por Promtail usar el volumen `app_logs`.
 
   En `logging_assets/monitoring/promtail/config.yml` ya se establece `job: "docker"` para facilitar consultas en Grafana:
 
