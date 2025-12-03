@@ -22,11 +22,11 @@ pip install -r requirements.txt
 
 ## Alertas y dashboards
 
--- Reglas de alerta: `logging_assets/monitoring/prometheus/rules/alerts.yml` contiene reglas de ejemplo (`HighErrorRate`, `HighLatencyP95`). Puedes añadir más reglas en ese archivo o crear nuevos ficheros `.yml` dentro de `logging_assets/monitoring/prometheus/rules/`.
+-- Reglas de alerta: `logging_assets/monitoring/prometheus/rules/alerts.yml` contiene reglas de ejemplo (`HighErrorRate`, `HighLatencyP95`). Se pueden añadir más reglas en ese archivo o crear nuevos ficheros `.yml` dentro de `logging_assets/monitoring/prometheus/rules/`.
 
 -- Alertmanager: la configuración de `logging_assets/monitoring/alertmanager/config.yml` define `receivers` vacíos por defecto. Añade `email_configs`, `slack_configs` o `webhook_configs` para recibir notificaciones.
 
--- Dashboards: los dashboards están en `logging_assets/grafana/provisioning/dashboards/` y se importan automáticamente al arranque de Grafana. Si quieres añadir un dashboard nuevo, simplemente coloca el `.json` en esa carpeta.
+-- Dashboards: los dashboards están en `logging_assets/grafana/provisioning/dashboards/` y se importan automáticamente al arranque de Grafana. Si se quiere añadir un dashboard nuevo, simplemente coloca el `.json` en esa carpeta.
 
 ## 📊 Acceder a los servicios
 
@@ -45,11 +45,11 @@ docker-compose up --build
 
 - **Grafana**: http://localhost:3000
   - Usuario: `admin` / Contraseña: `admin`
-  - Dashboard: "Observabilidad FastAPI + Prometheus + Loki" (importado automáticamente)
+  - Dashboard: "Observabilidad FastAPI + Prometheus + Loki" 
 
 - **Loki**: http://localhost:3100
 
-Si no ves logs en Grafana, asegúrate de que Promtail tenga acceso a los logs del host. En Linux usamos `/var/lib/docker/containers` montado en el servicio `promtail`.
+Si no se ven logs en Grafana, asegúrate de que Promtail tenga acceso a los logs del host. Ruta `/var/lib/docker/containers` montado en el servicio `promtail`.
 
 ## 📝 Características del Dashboard
 
