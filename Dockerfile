@@ -21,6 +21,8 @@ COPY app/ ./app/
 COPY classifier_model.pkl /app/classifier_model.pkl
 WORKDIR /app
 
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 # Exponemos el puerto
 EXPOSE 8000

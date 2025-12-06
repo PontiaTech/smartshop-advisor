@@ -4,6 +4,12 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from sentence_transformers import SentenceTransformer
 import pickle, chromadb, numpy as np, traceback, spacy, json
+
+import time
+import random
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from app.observability.logging_config import setup_logger
+from app.observability.metrics import REQUEST_COUNT, ERROR_COUNT, REQUEST_LATENCY
 from app.api.services.product_search import complete_search
 from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse
 from chromadb.errors import NotFoundError
@@ -27,6 +33,9 @@ app = FastAPI(
     },
 )
 
+#Mapear los logs
+logger = setup_logger()
+
 # --- Carga de modelos ---
 encoder = SentenceTransformer("clip-ViT-B-32")
 
@@ -35,8 +44,11 @@ with open("classifier_model.pkl", "rb") as f:
 
 # --- Conexión a Chroma ---
 # client = chromadb.HttpClient(host="chroma", port=8000)
-# collection = client.get_collection("products")
-
+try:
+    # collection = client.get_collection("products")
+except Exception as e:
+    logger.warning(f"No se pudo cargar la collection 'products' en Chroma: {e}")
+    collection = None
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
@@ -103,6 +115,37 @@ class RespuestaBusqueda(BaseModel):
     tipo_predicho: str = Field(..., description="Tipo de producto detectado por el modelo.")
     resultados: List[ResultadoProducto] = Field(..., description="Productos más similares encontrados.")
 
+
+# --- Endpoint raíz ---
+@app.get("/")
+async def index(request: Request):
+    start_time = time.time()
+    status = 200
+    try:
+        # Simula latencia variable
+        time.sleep(random.uniform(0.1, 0.5))
+        client_ip = request.client.host if request.client else "unknown"
+        logger.info(
+            "Solicitud recibida en /log",
+            extra={"endpoint": "/", "ip": client_ip, "status": status, "method": request.method}
+        )
+        return {"message": "API para realizar búsquedas inteligentes de productos de moda en una BBDD vectorial mediante embeddings y clasificación automática. ✅"}
+    except Exception as e:
+        status = 500
+        logger.error(
+            "Error en endpoint raíz",
+            extra={"endpoint": "/", "error": str(e), "status": status, "method": request.method}
+        )
+        return JSONResponse({"error": "Error en endpoint raíz"}, status_code=status)
+    finally:
+        record_request("/", status, start_time, method=request.method)
+
+
+def record_request(endpoint: str, status: int, start_time: float, method: str = "GET"):
+    duration = time.time() - start_time
+    # Asegurar que los labels sean strings
+    REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=str(status)).inc()
+    REQUEST_LATENCY.labels(endpoint=endpoint).observe(duration)
 
 # --- Endpoint principal ---
 @app.post(
@@ -199,6 +242,32 @@ async def search(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@app.get("/random_event")
+async def random_event(request: Request):
+    start_time = time.time()
+    rnd = random.random()
+    status = 200
+
+    if rnd < 0.7:
+        msg = "Evento exitoso"
+        logger.info(msg, extra={"endpoint": "/random_event", "type": "info", "status": status, "method": request.method})
+    elif rnd < 0.9:
+        msg = "Evento crítico simulado"
+        logger.error(msg, extra={"endpoint": "/random_event", "type": "CriticalError", "status": 500, "method": request.method})
+        ERROR_COUNT.labels(endpoint="/random_event", error_type="CriticalError").inc()
+        status = 500
+    else:
+        msg = "Evento de advertencia simulado"
+        logger.warning(msg, extra={"endpoint": "/random_event", "type": "warning", "status": status, "method": request.method})
+
+    record_request("/random_event", status, start_time, method=request.method)
+    return JSONResponse({"message": msg, "status": status}, status_code=status)
+
+@app.get("/metrics")
+async def metrics():
+    """Endpoint para Prometheus"""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 
