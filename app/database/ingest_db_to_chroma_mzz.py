@@ -59,6 +59,15 @@ def infer_product_family_row(row: pd.Series) -> str:
     # 4) fallback vacío
     return ""
 
+def extract_brand_name(val):
+    if not isinstance(val, str) or not val.strip():
+        return ""
+    try:
+        data = json.loads(val)
+        return data.get("name", "")
+    except json.JSONDecodeError:
+        return ""
+
 def ingest_chroma_zalando_mango_zara():
     
     MANGO_CSV = os.getenv("MANGO_CSV", "./data/Mango Products Prepared.csv")
@@ -117,9 +126,10 @@ def ingest_chroma_zalando_mango_zara():
     mango = pd.DataFrame({
         "product_name": df_mango.get("product_name", ""),
         "description": df_mango.get("description", ""),
-        "product_family": df_mango.get("product_family", ""),
+        "product_family": df_mango.get("canonical_family", ""),
         "image": df_mango.get("image", ""),
         "url": df_mango.get("url", ""),
+        # "color": ""
     })
     mango["source"] = "mango"
 
@@ -127,23 +137,27 @@ def ingest_chroma_zalando_mango_zara():
     zara = pd.DataFrame({
         "product_name": df_zara.get("product_name", ""),
         "description": df_zara.get("description", ""),
-        "product_family": df_zara.get("product_family", ""),
+        "product_family": df_zara.get("canonical_family", ""),
         "image": df_zara.get("image", ""),
         "url": df_zara.get("url", ""),
+        "color": df_zara.get("colour", ""),
     })
     zara["source"] = "zara"
 
     # --- Zalando ---
-    df_zalando["product_family"] = df_zalando.apply(infer_product_family_row, axis=1)
+    # df_zalando["product_family"] = df_zalando.apply(infer_product_family_row, axis=1)
 
+    brand_names = df_zalando.get("brand", "").apply(extract_brand_name)
     zalando = pd.DataFrame({
         "product_name": df_zalando.get("product_name", df_zalando.get("name", "")),
         "description": df_zalando.get("description", ""),
-        "product_family": df_zalando.get("product_family", ""),
+        "product_family": df_zalando.get("canonical_family", ""),
         "image": df_zalando.get("main_image", ""),
         "url": df_zalando.get("product_url", df_zalando.get("url", "")),
+        "color": df_zalando.get("color", ""),
+        "source": brand_names
     })
-    zalando["source"] = "zalando"
+    
     
     all_products = pd.concat([mango, zalando, zara], ignore_index=True)
     

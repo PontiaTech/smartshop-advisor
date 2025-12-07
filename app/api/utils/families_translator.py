@@ -291,18 +291,18 @@ def infer_canonical_family(family_es: str) -> str:
 
 def add_canonical_families(df_original: pd.DataFrame) -> pd.DataFrame:
     # df_original = pd.read_csv("./data/.csv", encoding="utf-8")
-    df_mapping = pd.read_csv("./data/families_translated.csv", encoding="utf-8", sep=";")
+    df_mapping = pd.read_csv("./data/families_translated.csv", encoding="utf-8", sep=None, engine="python")
     
-    df_original = df_original.copy()
-    df_original.columns = [c.strip() for c in df_original.columns]
+    df_or = df_original.copy()
+    df_or.columns = [c.strip() for c in df_or.columns]
 
-    if "product_family" not in df_original.columns:
+    if "product_family" not in df_or.columns:
         raise ValueError(
             f"df_original no tiene columna 'product_family'. "
-            f"Columnas encontradas: {list(df_original.columns)}"
+            f"Columnas encontradas: {list(df_or.columns)}"
         )
     
-    df_new = df_original.merge(df_mapping, on="product_family", how="left")
+    df_new = df_or.merge(df_mapping, on="product_family", how="left")
     df_new["canonical_family"] = df_new["family_es"].apply(infer_canonical_family)
     df_new = df_new.drop(columns=["family_es"])
     
