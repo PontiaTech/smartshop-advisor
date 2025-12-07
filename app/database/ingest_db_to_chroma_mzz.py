@@ -219,7 +219,7 @@ def ingest_chroma_zalando_mango_zara():
             embeddings=embeddings,
             metadatas=batch_meta
         )
-        print(f"   ✅ Insertados {min(end, len(ids))}/{len(ids)}")
+        print(f"✅ Insertados {min(end, len(ids))}/{len(ids)}")
         
 
 if "__main__" == __name__:
