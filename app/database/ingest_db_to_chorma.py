@@ -4,6 +4,8 @@ import pandas as pd
 import kagglehub
 from chromadb import HttpClient
 from sentence_transformers import SentenceTransformer
+import json
+import ast
 
 # --- Descargar dataset de Kaggle ---
 dataset_path = kagglehub.dataset_download("bhavikjikadara/e-commerce-products-images")
