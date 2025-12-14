@@ -10,8 +10,14 @@ import random
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from app.observability.logging_config import setup_logger
 from app.observability.metrics import REQUEST_COUNT, ERROR_COUNT, REQUEST_LATENCY
+from fastapi.responses import Response
+
 from app.api.services.product_search import complete_search
-from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse
+from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse, ChatRequest, ChatResponse
+from app.api.utils.chat_utils import history_to_text, results_to_bullets
+from app.api.ai.llms import get_gemini_llm
+from langchain.prompts import ChatPromptTemplate
+from app.api.utils.system_prompts import CHATBOT_SYSTEM_PROMPT
 from chromadb.errors import NotFoundError
 import os
 
@@ -44,11 +50,11 @@ with open("classifier_model.pkl", "rb") as f:
 
 # --- Conexión a Chroma ---
 # client = chromadb.HttpClient(host="chroma", port=8000)
-try:
-    # collection = client.get_collection("products")
-except Exception as e:
-    logger.warning(f"No se pudo cargar la collection 'products' en Chroma: {e}")
-    collection = None
+# try:
+#     # collection = client.get_collection("products")
+# except Exception as e:
+#     logger.warning(f"No se pudo cargar la collection 'products' en Chroma: {e}")
+#     collection = None
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
@@ -294,5 +300,66 @@ async def complete_search_endpoint(body: CompleteSearchRequest):
         ]
 
         return CompleteSearchResponse(predicted_type=predicted_type, results=api_results)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+    
+@app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Gemini")
+async def chat_endpoint(body: ChatRequest):
+    try:
+        # 1) RAG (sync)
+        rag = complete_search(body.query, n_results=body.top_k)
+
+        predicted_type = rag.get("predicted_type")
+        raw_results = rag.get("results", []) or []
+
+        # Score correcto: usa el score final (ranking), con fallback a clip_score
+        results = [
+            CompleteSearchProduct(
+                product_name=r.get("product_name", ""),
+                product_family=r.get("product_family"),
+                description=r.get("description"),
+                source=r.get("source"),
+                url=r.get("url"),
+                image=r.get("image"),
+                score=float(r.get("score", r.get("clip_score", 0.0)) or 0.0),
+            )
+            for r in raw_results
+        ]
+
+        # 2) Prompt
+        hist_txt = history_to_text(body.history)
+        limit = min(max(body.top_k, 6), 12)  # cap para no inflar el prompt
+        products_txt = results_to_bullets(results, limit=limit)
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", CHATBOT_SYSTEM_PROMPT),
+            ("human",
+             "Historial:\n{history}\n\n"
+             "Query:\n{query}\n\n"
+             "Tipo predicho:\n{predicted_type}\n\n"
+             "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
+             "Genera la respuesta."
+            )
+        ])
+
+        llm = get_gemini_llm()
+        chain = prompt | llm
+        llm_out = await chain.ainvoke({
+            "history": hist_txt or "(vacío)",
+            "query": body.query,
+            "predicted_type": predicted_type or "(desconocido)",
+            "products": products_txt or "(sin resultados)",
+        })
+
+        answer = getattr(llm_out, "content", None) or str(llm_out)
+
+        return ChatResponse(
+            answer=answer.strip(),
+            predicted_type=predicted_type,
+            results=results,
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

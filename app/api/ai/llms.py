@@ -20,7 +20,7 @@ if not GEMINI_API_KEY:
 def get_gemini_llm():
     gemini_params = {
         "model": GEMINI_MODEL_NAME,
-        "api_key": GEMINI_API_KEY,
+        "google_api_key": GEMINI_API_KEY,
         "temperature": 0.2,
     }
         
