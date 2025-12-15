@@ -92,9 +92,19 @@ class ChatRequest(BaseModel):
     query: str
     top_k: int = 5
     history: Optional[List[ChatMessage]] = None  # usa tu ChatMessage existente
+    target_language: str = "es"
+    
+class WebSearchProduct(BaseModel):
+    title: str
+    url: HttpUrl
+    snippet: Optional[str] = None
+    source: Optional[str] = None
     
 
 class ChatResponse(BaseModel):
     answer: str
     predicted_type: Optional[str] = None
-    results: List[CompleteSearchProduct] 
+    results: List[CompleteSearchProduct]
+    web_results: Optional[List[WebSearchProduct]] = None
+    
+    

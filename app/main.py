@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from sentence_transformers import SentenceTransformer
 import pickle, chromadb, numpy as np, traceback, spacy, json
+from app.api.utils.language_detection import translate_results
 
 import time
 import random
@@ -14,10 +15,12 @@ from fastapi.responses import Response
 
 from app.api.services.product_search import complete_search
 from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse, ChatRequest, ChatResponse
-from app.api.utils.chat_utils import history_to_text, results_to_bullets
+from app.api.utils.chat_utils import history_to_text, results_to_bullets, web_results_to_bullets
+from app.api.services.web_search import web_search_products
 from app.api.ai.llms import get_gemini_llm
-from langchain.prompts import ChatPromptTemplate
-from app.api.utils.system_prompts import CHATBOT_SYSTEM_PROMPT
+# from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
+from app.api.ai.system_prompts import CHATBOT_SYSTEM_PROMPT, FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT
 from chromadb.errors import NotFoundError
 import os
 
@@ -327,30 +330,40 @@ async def chat_endpoint(body: ChatRequest):
             )
             for r in raw_results
         ]
+        
+        
+        target_lang = (body.target_language or "es").strip().lower()
+        llm = get_gemini_llm()
+        results = await translate_results(results=results, llm=llm, target_lang=target_lang)
+        
 
-        # 2) Prompt
         hist_txt = history_to_text(body.history)
-        limit = min(max(body.top_k, 6), 12)  # cap para no inflar el prompt
+        limit = min(max(body.top_k, 6), 12)
         products_txt = results_to_bullets(results, limit=limit)
+        web_items = await web_search_products(body.query, k=3)
+        web_txt = web_results_to_bullets(web_items)
+
 
         prompt = ChatPromptTemplate.from_messages([
-            ("system", CHATBOT_SYSTEM_PROMPT),
+            ("system", FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT),
             ("human",
+             "Idioma de respuesta: {target_language}\n\n"
              "Historial:\n{history}\n\n"
              "Query:\n{query}\n\n"
-             "Tipo predicho:\n{predicted_type}\n\n"
              "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
+             "Resultados encontrados en internet:\n{web_products}\n\n"
              "Genera la respuesta."
             )
         ])
 
-        llm = get_gemini_llm()
+        
         chain = prompt | llm
         llm_out = await chain.ainvoke({
+            "target_language": target_lang,
             "history": hist_txt or "(vacío)",
             "query": body.query,
-            "predicted_type": predicted_type or "(desconocido)",
             "products": products_txt or "(sin resultados)",
+            "web_products": web_txt or "(sin resultados web)",
         })
 
         answer = getattr(llm_out, "content", None) or str(llm_out)

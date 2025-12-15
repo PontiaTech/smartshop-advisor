@@ -1,6 +1,6 @@
 import os
 from typing import List, Dict, Any
-
+import re
 import numpy as np
 import requests
 from chromadb import HttpClient
@@ -21,6 +21,8 @@ TEXT_EMB_MODEL = os.getenv(
     "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
 )
 CLIP_MODEL = os.getenv("CLIP_MODEL", "clip-ViT-B-32")
+
+STOP = {"de","la","el","y","para","con","sin","un","una","unos","unas","que","en","por","del","al"}
 
 
 client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
@@ -94,8 +96,30 @@ def category_boost(predicted_type: str | None, product_family: str | None) -> fl
     if pt in pf or pf in pt:
         return 1.0
 
-    # si no coincide literal, pero quieres ser menos duro, podrías jugar con sinónimos aquí
     return 0.0
+
+def compute_imp_cat_eff(predicted_type: str, candidates: list[dict], imp_cat: float) -> float:
+    if imp_cat <= 0:
+        return 0.0
+    boosts = []
+    for c in candidates[:10]:
+        boosts.append(category_boost(predicted_type, c.get("product_family")))
+    avg = sum(boosts) / max(len(boosts), 1)
+    return imp_cat if avg >= 0.3 else 0.0
+
+
+def extract_keywords(query: str) -> list[str]:
+    words = re.findall(r"[a-zA-ZÀ-ÿ0-9]+", (query or "").lower())
+    words = [w for w in words if len(w) >= 4 and w not in STOP]
+    return words[:6]
+
+def keyword_match_score(query: str, product_text: str) -> float:
+    kws = extract_keywords(query)
+    if not kws:
+        return 1.0
+    t = (product_text or "").lower()
+    hits = sum(1 for k in kws if k in t)
+    return hits / len(kws)
   
     
 def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_text: float = 0.4, imp_image: float = 0.5, imp_cat: float = 0.1) -> dict:
@@ -112,6 +136,8 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
     candidates = basic_search(query, n_results=candidates_k)
     if not candidates:
         return {"predicted_type": predicted_type, "results": []}
+    
+    imp_cat_eff = compute_imp_cat_eff(predicted_type, candidates, imp_cat)
 
     # Embedding de texto en espacio CLIP
     text_emb = clip_encoder.encode(
@@ -120,47 +146,92 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
     )[0]
 
     scored: List[Dict[str, Any]] = []
+    clip_available = 0
 
-    for c in candidates:
-        img_url = c.get("image") or c.get("url")
-        text_score = float(c.get("text_score", 0.0))
+    # for c in candidates:
+    #     img_url = c.get("image")
+    #     text_score = float(c.get("text_score", 0.0))
         
-        # vemos a ver si la categoría que se ha predicho encaja con la familia del producto
+    #     # vemos a ver si la categoría que se ha predicho encaja con la familia del producto
+    #     product_family = c.get("product_family")
+    #     cat_boost = category_boost(predicted_type, product_family)
+
+    #     if not img_url:
+    #         clip_score = -1.0
+    #     else:
+    #         img = load_image_from_url(img_url)
+    #         if img is None:
+    #             clip_score = -1.0
+    #         else:
+    #             img_emb = clip_encoder.encode(  # type: ignore[arg-type]
+    #                 img,
+    #                 convert_to_numpy=True,
+    #             )
+    #             num = float(np.dot(text_emb, img_emb))
+    #             denom = float(np.linalg.norm(text_emb) * np.linalg.norm(img_emb))
+    #             clip_score = num / denom if denom != 0 else -1.0
+
+
+    #     # Normalizamos sim a [0,1]
+    #     clip_sim = (clip_score + 1.0) / 2.0
+
+    #     c["clip_score"] = clip_score
+    #     c["category_boost"] = cat_boost
+
+    #     final_score = imp_text * text_score + imp_image * clip_sim + imp_cat_eff * cat_boost
+
+    #     c["score"] = final_score
+
+    #     scored.append(c)
+        
+    
+    
+
+    # # Ordenamos por score final descendente
+    # scored.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+    # top = scored[:n_results]
+    # return {
+    #     "predicted_type": predicted_type,
+    #     "results": top,
+    # }
+    
+    for c in candidates:
+        img_url = c.get("image")
+        text_score = float(c.get("text_score", 0.0))
+
         product_family = c.get("product_family")
         cat_boost = category_boost(predicted_type, product_family)
 
-        if not img_url:
-            clip_score = -1.0
-        else:
+        clip_score = -1.0
+        if img_url:
             img = load_image_from_url(img_url)
-            if img is None:
-                clip_score = -1.0
-            else:
-                img_emb = clip_encoder.encode(  # type: ignore[arg-type]
-                    img,
-                    convert_to_numpy=True,
-                )
+            if img is not None:
+                img_emb = clip_encoder.encode(img, convert_to_numpy=True)  # type: ignore[arg-type]
                 num = float(np.dot(text_emb, img_emb))
                 denom = float(np.linalg.norm(text_emb) * np.linalg.norm(img_emb))
                 clip_score = num / denom if denom != 0 else -1.0
 
-
-        # Normalizamos sim a [0,1]
         clip_sim = (clip_score + 1.0) / 2.0
-
         c["clip_score"] = clip_score
+        c["clip_sim"] = clip_sim 
         c["category_boost"] = cat_boost
 
-        final_score = imp_text * text_score + imp_image * clip_sim + imp_cat * cat_boost
+        if clip_score != -1.0:
+            clip_available += 1 
 
-        c["score"] = final_score
-
+        c["score"] = imp_text * text_score + imp_image * clip_sim + imp_cat_eff * cat_boost
         scored.append(c)
 
-    # Ordenamos por score final descendente
+    if clip_available == 0:
+        for c in scored:
+            text_score = float(c.get("text_score", 0.0))
+            cat_boost = float(c.get("category_boost", 0.0))
+            c["score"] = imp_text * text_score + imp_cat_eff * cat_boost
+            c["clip_score"] = -1.0
+            c["clip_sim"] = 0.0
+
     scored.sort(key=lambda x: x.get("score", 0.0), reverse=True)
-    top = scored[:n_results]
-    return {
-        "predicted_type": predicted_type,
-        "results": top,
-    }
+    filtered = [x for x in scored if float(x.get("score", 0.0) or 0.0) >= 0.6] # para que saque solo las score mayores a 0.6 yeliminar cosas raras que salen
+    top = (filtered[:n_results]) if filtered else (scored[:n_results])
+
+    return {"predicted_type": predicted_type, "results": top}

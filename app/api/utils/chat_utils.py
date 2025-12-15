@@ -37,3 +37,15 @@ def results_to_bullets(results: List[CompleteSearchProduct], limit: int = 8) -> 
         )
 
     return "\n".join(bullets)
+
+
+def web_results_to_bullets(items: list[dict]) -> str:
+    lines = []
+    for i, it in enumerate(items, 1):
+        lines.append(
+            f"- [{i}] {it.get('title','')}\n"
+            f"  - source: {it.get('source','')}\n"
+            f"  - snippet: {it.get('snippet','')}\n"
+            f"  - url: {it.get('url','')}"
+        )
+    return "\n".join(lines)
