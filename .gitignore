@@ -17,4 +17,4 @@ ssa-db_params.env
 
 # Ignorar data
 
-data/
+/data/

@@ -34,12 +34,16 @@ services:
     container_name: api-smartshopadvisor
     ports:
       - "8001:8000"
+    env_file:
+    - .env
     environment:
       DB_HOST: db-smartshopadvisor
       DB_PORT: 5432
       DB_USER: user
       DB_PASSWORD: password
       DB_NAME: smartshop_db
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
     depends_on:
       db-smartshopadvisor:
         condition: service_healthy
@@ -131,6 +135,27 @@ services:
       - ./logging_assets/grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - smartshopadvisor-net
+    
+  
+  ingest-smartshopadvisor:
+    build: .
+    container_name: ingest-smartshopadvisor
+    command: ["python", "app/database/ingest_db_to_chroma_mzz.py"]
+    env_file:
+      - .env
+    environment:
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - CHROMA_COLLECTION=products_all
+    depends_on:
+      chroma:
+        condition: service_started
+    networks:
+      - smartshopadvisor-net
+    volumes:
+      - .:/app
+    restart: "no"
+
 
 networks:
   smartshopadvisor-net:

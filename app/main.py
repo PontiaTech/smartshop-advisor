@@ -4,12 +4,25 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from sentence_transformers import SentenceTransformer
 import pickle, chromadb, numpy as np, traceback, spacy, json
+from app.api.utils.language_detection import translate_results
 
 import time
 import random
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from app.observability.logging_config import setup_logger
 from app.observability.metrics import REQUEST_COUNT, ERROR_COUNT, REQUEST_LATENCY
+from fastapi.responses import Response
+
+from app.api.services.product_search import complete_search
+from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse, ChatRequest, ChatResponse
+from app.api.utils.chat_utils import history_to_text, results_to_bullets, web_results_to_bullets
+from app.api.services.web_search import web_search_products
+from app.api.ai.llms import get_gemini_llm
+# from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
+from app.api.ai.system_prompts import CHATBOT_SYSTEM_PROMPT, FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT
+from chromadb.errors import NotFoundError
+import os
 
 app = FastAPI(
     title="🧠 API - SmartShop Advisor",
@@ -39,12 +52,34 @@ with open("classifier_model.pkl", "rb") as f:
     clf = pickle.load(f)
 
 # --- Conexión a Chroma ---
-client = chromadb.HttpClient(host="chroma", port=8000)
-try:
-    collection = client.get_collection("products")
-except Exception as e:
-    logger.warning(f"No se pudo cargar la collection 'products' en Chroma: {e}")
-    collection = None
+# client = chromadb.HttpClient(host="chroma", port=8000)
+# try:
+#     # collection = client.get_collection("products")
+# except Exception as e:
+#     logger.warning(f"No se pudo cargar la collection 'products' en Chroma: {e}")
+#     collection = None
+
+CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
+CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
+CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "products_all")
+
+client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+
+def get_chroma_collection():
+    """
+    Devuelve la colección de Chroma. Si no existe, lanza un error claro
+    en vez de romper al importar el módulo.
+    """
+    try:
+        return client.get_collection(CHROMA_COLLECTION)
+    except NotFoundError:
+        # Aquí podrías hacer create_collection si quieres una vacía:
+        # return client.create_collection(CHROMA_COLLECTION)
+        raise RuntimeError(
+            f"La colección '{CHROMA_COLLECTION}' no existe en Chroma. "
+            f"Ejecuta primero el proceso de ingesta (ingest-smartshopadvisor)."
+        )
+
 # --- Variables globales ---
 last_article_type = None
 last_embeddings = []
@@ -190,6 +225,7 @@ async def search(
 
         last_article_type = articulo
 
+        collection = get_chroma_collection()
         r = collection.query(
             query_embeddings=[comb_emb],
             n_results=3,
@@ -241,3 +277,102 @@ async def random_event(request: Request):
 async def metrics():
     """Endpoint para Prometheus"""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+
+# Pipeline multimodal con combinación de similitud semántica, similitud visual y clasificación de intención de usuario.
+@app.post("/complete_search", response_model=CompleteSearchResponse,summary="Búsqueda texto + imagen en productos")
+async def complete_search_endpoint(body: CompleteSearchRequest):
+    try:
+        result = complete_search(body.query, n_results=body.top_k)
+
+        predicted_type = result.get("predicted_type")
+        raw_results = result.get("results", [])
+
+        api_results = [
+            CompleteSearchProduct(
+                product_name=r.get("product_name", ""),
+                product_family=r.get("product_family"),
+                description=r.get("description"),
+                source=r.get("source"),
+                url=r.get("url"),
+                image=r.get("image"),
+                score=float(r.get("clip_score", 0.0)),
+            )
+            for r in raw_results
+        ]
+
+        return CompleteSearchResponse(predicted_type=predicted_type, results=api_results)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+    
+@app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Gemini")
+async def chat_endpoint(body: ChatRequest):
+    try:
+        # 1) RAG (sync)
+        rag = complete_search(body.query, n_results=body.top_k)
+
+        predicted_type = rag.get("predicted_type")
+        raw_results = rag.get("results", []) or []
+
+        # Score correcto: usa el score final (ranking), con fallback a clip_score
+        results = [
+            CompleteSearchProduct(
+                product_name=r.get("product_name", ""),
+                product_family=r.get("product_family"),
+                description=r.get("description"),
+                source=r.get("source"),
+                url=r.get("url"),
+                image=r.get("image"),
+                score=float(r.get("score", r.get("clip_score", 0.0)) or 0.0),
+            )
+            for r in raw_results
+        ]
+        
+        
+        target_lang = (body.target_language or "es").strip().lower()
+        llm = get_gemini_llm()
+        results = await translate_results(results=results, llm=llm, target_lang=target_lang)
+        
+
+        hist_txt = history_to_text(body.history)
+        limit = min(max(body.top_k, 6), 12)
+        products_txt = results_to_bullets(results, limit=limit)
+        web_items = await web_search_products(body.query, k=3)
+        web_txt = web_results_to_bullets(web_items)
+
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT),
+            ("human",
+             "Idioma de respuesta: {target_language}\n\n"
+             "Historial:\n{history}\n\n"
+             "Query:\n{query}\n\n"
+             "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
+             "Resultados encontrados en internet:\n{web_products}\n\n"
+             "Genera la respuesta."
+            )
+        ])
+
+        
+        chain = prompt | llm
+        llm_out = await chain.ainvoke({
+            "target_language": target_lang,
+            "history": hist_txt or "(vacío)",
+            "query": body.query,
+            "products": products_txt or "(sin resultados)",
+            "web_products": web_txt or "(sin resultados web)",
+        })
+
+        answer = getattr(llm_out, "content", None) or str(llm_out)
+
+        return ChatResponse(
+            answer=answer.strip(),
+            predicted_type=predicted_type,
+            results=results,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
