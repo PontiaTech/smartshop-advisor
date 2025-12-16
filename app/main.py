@@ -311,13 +311,13 @@ async def complete_search_endpoint(body: CompleteSearchRequest):
 @app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Gemini")
 async def chat_endpoint(body: ChatRequest):
     try:
-        # 1) RAG (sync)
+        # RAG
         rag = complete_search(body.query, n_results=body.top_k)
 
         predicted_type = rag.get("predicted_type")
         raw_results = rag.get("results", []) or []
 
-        # Score correcto: usa el score final (ranking), con fallback a clip_score
+        # score final
         results = [
             CompleteSearchProduct(
                 product_name=r.get("product_name", ""),
@@ -334,14 +334,16 @@ async def chat_endpoint(body: ChatRequest):
         
         target_lang = (body.target_language or "es").strip().lower()
         llm = get_gemini_llm()
-        results = await translate_results(results=results, llm=llm, target_lang=target_lang)
-        
+        try:
+            results = await translate_results(results=results, llm=llm, target_lang=target_lang)
+        except Exception:
+            pass # Es q hay veces que me queda sin llamdas a gemini para que no me pete
 
         hist_txt = history_to_text(body.history)
         limit = min(max(body.top_k, 6), 12)
         products_txt = results_to_bullets(results, limit=limit)
-        web_items = await web_search_products(body.query, k=3)
-        web_txt = web_results_to_bullets(web_items)
+        # web_items = await web_search_products(body.query, k=3, lang=target_lang)
+        # web_txt = web_results_to_bullets(web_items)
 
 
         prompt = ChatPromptTemplate.from_messages([
@@ -351,7 +353,7 @@ async def chat_endpoint(body: ChatRequest):
              "Historial:\n{history}\n\n"
              "Query:\n{query}\n\n"
              "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
-             "Resultados encontrados en internet:\n{web_products}\n\n"
+             # "Resultados encontrados en internet:\n{web_products}\n\n"
              "Genera la respuesta."
             )
         ])
@@ -363,7 +365,7 @@ async def chat_endpoint(body: ChatRequest):
             "history": hist_txt or "(vacío)",
             "query": body.query,
             "products": products_txt or "(sin resultados)",
-            "web_products": web_txt or "(sin resultados web)",
+            # "web_products": web_txt or "(sin resultados web)",
         })
 
         answer = getattr(llm_out, "content", None) or str(llm_out)
