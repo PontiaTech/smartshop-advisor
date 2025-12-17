@@ -1,11 +1,18 @@
 import os
 import httpx
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from sentence_transformers import SentenceTransformer
+from chromadb import HttpClient
 from dotenv import load_dotenv
 
 load_dotenv()
 
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
+EMB_MODEL = os.getenv("EMB_MODEL", "sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
+COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "products_all")
+CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
+CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
+client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
 
 def _country_from_lang(lang: str) -> str:
@@ -69,6 +76,8 @@ async def web_search_products(query: str, k: int = 3, lang: str = "es", pool_siz
     """
     if not SERPAPI_API_KEY:
         return []
+    
+    embedder = SentenceTransformer(EMB_MODEL)
 
     q = (query or "").strip()
     if not q or k <= 0:
@@ -132,6 +141,23 @@ async def web_search_products(query: str, k: int = 3, lang: str = "es", pool_siz
                 "serpapi_immersive_product_api": it.get("serpapi_immersive_product_api"),
                 "product_id": it.get("product_id"),
             })
+            
+        # Esta pool de productos los refinamos y incluimos en el catálogo para que en el futuro contemos con más productos
+            
+        embeddings = embedder.encode(
+            batch_docs,
+            batch_size=64,
+            show_progress_bar=False,
+            convert_to_numpy=True
+        ).tolist()
+
+        # collection.add(
+        #     ids=batch_ids,
+        #     documents=batch_docs,
+        #     embeddings=embeddings,
+        #     metadatas=batch_meta
+        # )
+        # print(f"✅ Insertados {min(end, len(ids))}/{len(ids)}")
 
         best = pick_best(pool, k=k)
 
