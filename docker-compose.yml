@@ -140,7 +140,7 @@ services:
   ingest-smartshopadvisor:
     build: .
     container_name: ingest-smartshopadvisor
-    command: ["python", "app/database/ingest_db_to_chroma_mzz.py"]
+    command: ["python", "app/database/ingest_to_chroma_robust.py"]
     env_file:
       - .env
     environment:

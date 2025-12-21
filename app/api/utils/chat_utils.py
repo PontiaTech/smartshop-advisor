@@ -40,12 +40,24 @@ def results_to_bullets(results: List[CompleteSearchProduct], limit: int = 8) -> 
 
 
 def web_results_to_bullets(items: list[dict]) -> str:
+    # lines = []
+    # for i, it in enumerate(items, 1):
+    #     lines.append(
+    #         f"- [{i}] {it.get('title','')}\n"
+    #         f"  - source: {it.get('source','')}\n"
+    #         f"  - snippet: {it.get('snippet','')}\n"
+    #         f"  - url: {it.get('url','')}"
+    #     )
+    # return "\n".join(lines)
     lines = []
     for i, it in enumerate(items, 1):
+        title = it.get("title") or it.get("product_name") or ""
+        snippet = it.get("snippet") or it.get("description") or ""
+
         lines.append(
-            f"- [{i}] {it.get('title','')}\n"
+            f"- [{i}] {title}\n"
             f"  - source: {it.get('source','')}\n"
-            f"  - snippet: {it.get('snippet','')}\n"
+            f"  - snippet: {snippet}\n"
             f"  - url: {it.get('url','')}"
         )
     return "\n".join(lines)

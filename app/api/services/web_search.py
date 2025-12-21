@@ -3,6 +3,8 @@ import httpx
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from sentence_transformers import SentenceTransformer
 from chromadb import HttpClient
+import uuid
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,31 +17,46 @@ CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
 client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
 
-def _country_from_lang(lang: str) -> str:
-    lang = (lang or "").lower()
-    if lang.startswith("es"):
-        return "es"
-    if lang.startswith("en"):
-        return "us"
-    if lang.startswith("fr"):
-        return "fr"
-    if lang.startswith("de"):
-        return "de"
-    if lang.startswith("it"):
-        return "it"
-    return "us"
+logger = logging.getLogger("smartshop.websearch")
 
-def _default_location(lang: str) -> str:
-    lang = (lang or "").lower()
-    if lang.startswith("es"):
-        return "Madrid, Spain"
-    if lang.startswith("en"):
-        return "Austin, Texas, United States"
-    if lang.startswith("fr"):
-        return "Paris, France"
-    if lang.startswith("de"):
-        return "Berlin, Germany"
-    return "Austin, Texas, United States"
+# Si no tienes logging_config global, al menos esto:
+# (si ya lo configuras en otro sitio, borra estas 2 líneas)
+if not logger.handlers:
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
+
+
+# -------------------------
+# Helpers
+# -------------------------
+
+def _add_api_key(url: str, api_key: str) -> str:
+    u = urlparse(url)
+    q = parse_qs(u.query)
+    q["api_key"] = [api_key]
+    new_query = urlencode(q, doseq=True)
+    return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
+
+
+def _safe_str(x) -> str:
+    return (x if isinstance(x, str) else str(x or "")).strip()
+
+
+def _normalize_url(u: str) -> str:
+    try:
+        p = urlparse(u)
+        path = p.path.rstrip("/")
+        return urlunparse((p.scheme, p.netloc.lower(), path, p.params, p.query, ""))
+    except Exception:
+        return (u or "").strip()
+
+
+def _guess_color_from_title(title: str) -> str:
+    t = (title or "").lower()
+    for c in ["black", "white", "red", "blue", "green", "beige", "grey", "gray", "brown", "pink", "orange", "yellow"]:
+        if f" {c} " in f" {t} ":
+            return c
+    return ""
+
 
 def pick_best(items: list[dict], k: int = 3) -> list[dict]:
     def r(x): return float(x.get("rating") or 0.0)
@@ -48,55 +65,64 @@ def pick_best(items: list[dict], k: int = 3) -> list[dict]:
     qualified = [x for x in items if r(x) > 0 and n(x) >= 10]
     qualified.sort(key=lambda x: (r(x), n(x)), reverse=True)
 
+    logger.debug(
+        "pick_best: total=%d qualified=%d k=%d",
+        len(items), len(qualified), k
+    )
+
     if len(qualified) >= k:
         return qualified[:k]
 
     rest = [x for x in items if x not in qualified]
     rest.sort(key=lambda x: (r(x), n(x)), reverse=True)
-
     return (qualified + rest)[:k]
 
 
-def _add_api_key(url: str, api_key: str) -> str:
-    """
-    SerpApi devuelve serpapi_immersive_product_api sin api_key.
-    Esto lo añade sin romper el resto de parámetros.
-    """
-    u = urlparse(url)
-    q = parse_qs(u.query)
-    q["api_key"] = [api_key]
-    new_query = urlencode(q, doseq=True)
-    return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
+def _as_vector_record(base: dict, description: str) -> dict:
+    title = _safe_str(base.get("title"))
+    url = _safe_str(base.get("url"))
+    thumbnail = _safe_str(base.get("thumbnail"))
+    source = _safe_str(base.get("source"))
+
+    color = _safe_str(base.get("color")) or _guess_color_from_title(title)
+    family = _safe_str(base.get("product_family"))  # normalmente vacío en SerpAPI shopping
+
+    return {
+        "product_name": title,
+        "description": _safe_str(description),
+        "product_family": family,
+        "image": thumbnail,
+        "url": url,
+        "color": color,
+        "source": source,
+    }
 
 
-async def web_search_products(query: str, k: int = 3, lang: str = "es", pool_size: int = 20, location: str | None = None) -> list[dict]:
-    """
-    Devuelve hasta k resultados de Google Shopping (SerpApi).
-    Cada item incluye: title, url, source, price, extracted_price, rating, reviews, thumbnail, position.
-    """
+# -------------------------
+# Main
+# -------------------------
+
+async def web_search_products(
+    query: str,
+    k: int = 3,
+    lang: str = "es",
+    pool_size: int = 20,
+    location: str | None = None,
+) -> list[dict]:
     if not SERPAPI_API_KEY:
+        logger.warning("SERPAPI_API_KEY not set -> returning []")
         return []
-    
-    embedder = SentenceTransformer(EMB_MODEL)
 
     q = (query or "").strip()
     if not q or k <= 0:
+        logger.info("Empty query or k<=0 (q=%r, k=%s) -> returning []", q, k)
         return []
 
-    lang = (lang or "en").lower()
-
-    if lang.startswith("es"):
-        web_query = f"{q} comprar"
-        hl = "es"
-    elif lang.startswith("en"):
-        web_query = f"{q} buy"
-        hl = "en"
-    else:
-        web_query = q
-        hl = lang[:2] if len(lang) >= 2 else "en"
-
-    gl = _country_from_lang(lang)
-    loc = location or _default_location(lang)
+    # Forzamos estos valores por el tema de la descripción
+    hl = "en"
+    gl = "us"
+    loc = location or "Austin, Texas, United States"
+    web_query = f"{q} buy"
 
     params = {
         "engine": "google_shopping",
@@ -109,22 +135,87 @@ async def web_search_products(query: str, k: int = 3, lang: str = "es", pool_siz
         "output": "json",
     }
 
+    logger.info(
+        "web_search_products: q=%r web_query=%r k=%d pool_size=%d hl=%s gl=%s location=%r",
+        q, web_query, k, pool_size, hl, gl, loc
+    )
+    logger.debug("SerpAPI params=%s", params)
+
     url = "https://serpapi.com/search.json"
-    
 
     async with httpx.AsyncClient(timeout=20) as client:
-        r = await client.get(url, params=params)
-        r.raise_for_status()
-        data = r.json()
+        # 1) shopping search
+        try:
+            r = await client.get(url, params=params)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            logger.exception("SerpAPI shopping request failed: %s", e)
+            return []
 
         shopping = data.get("shopping_results") or []
+        logger.info("SerpAPI shopping_results=%d", len(shopping))
 
+        if not shopping:
+            logger.warning("No shopping_results for query=%r", web_query)
+            return []
+
+        # 2) global desc (fallback)
+        global_desc = ""
+        first_imm = next(
+            (x.get("serpapi_immersive_product_api") for x in shopping if x.get("serpapi_immersive_product_api")),
+            None
+        )
+
+        if first_imm:
+            try:
+                imm_url = _add_api_key(first_imm, SERPAPI_API_KEY)
+                logger.debug("Fetching global immersive: %s", imm_url)
+                r2 = await client.get(imm_url)
+                r2.raise_for_status()
+                imm = r2.json()
+                pr = imm.get("product_results") or imm.get("product_result") or {}
+                global_desc = _safe_str((pr.get("about_the_product") or {}).get("description") or "")
+                logger.info("global_desc loaded? %s (len=%d)", bool(global_desc), len(global_desc))
+            except Exception as e:
+                logger.exception("Global immersive fetch failed: %s", e)
+                global_desc = ""
+        else:
+            logger.info("No serpapi_immersive_product_api found -> global_desc empty")
+
+        # 3) build deduped pool
+        seen_product_ids: set[str] = set()
+        seen_urls: set[str] = set()
         pool: list[dict] = []
-        for it in shopping[: max(pool_size, k)]:
-            product_url = it.get("link") or it.get("product_link")
+
+        scan_limit = max(pool_size, k * 6)
+        logger.debug("Scanning up to %d items to build pool", scan_limit)
+
+        skipped_pid = 0
+        skipped_url = 0
+        skipped_missing = 0
+
+        for it in shopping[:scan_limit]:
+            product_url = it.get("link") or it.get("product_link") or ""
             title = it.get("title") or ""
             if not title or not product_url:
+                skipped_missing += 1
                 continue
+
+            pid = _safe_str(it.get("product_id"))
+            norm_url = _normalize_url(product_url)
+
+            if pid and pid in seen_product_ids:
+                skipped_pid += 1
+                continue
+            if norm_url and norm_url in seen_urls:
+                skipped_url += 1
+                continue
+
+            if pid:
+                seen_product_ids.add(pid)
+            if norm_url:
+                seen_urls.add(norm_url)
 
             domain = urlparse(product_url).netloc
 
@@ -140,42 +231,69 @@ async def web_search_products(query: str, k: int = 3, lang: str = "es", pool_siz
                 "position": it.get("position"),
                 "serpapi_immersive_product_api": it.get("serpapi_immersive_product_api"),
                 "product_id": it.get("product_id"),
+                "snippet": it.get("snippet"),
             })
-            
-        # Esta pool de productos los refinamos y incluimos en el catálogo para que en el futuro contemos con más productos
-            
-        embeddings = embedder.encode(
-            batch_docs,
-            batch_size=64,
-            show_progress_bar=False,
-            convert_to_numpy=True
-        ).tolist()
 
-        # collection.add(
-        #     ids=batch_ids,
-        #     documents=batch_docs,
-        #     embeddings=embeddings,
-        #     metadatas=batch_meta
-        # )
-        # print(f"✅ Insertados {min(end, len(ids))}/{len(ids)}")
+            if len(pool) >= pool_size:
+                break
 
-        best = pick_best(pool, k=k)
+        logger.info(
+            "Pool built: size=%d (skipped missing=%d pid_dup=%d url_dup=%d)",
+            len(pool), skipped_missing, skipped_pid, skipped_url
+        )
 
+        if not pool:
+            logger.warning("Pool empty after dedupe -> returning []")
+            return []
+
+        # 4) pick best
+        best_count = min(k, len(pool))
+        best = pick_best(pool, k=best_count)
+        logger.info("Best selected: %d", len(best))
+        logger.debug("Best titles=%s", [b.get("title") for b in best])
+
+        # 5) per-item enrich
         enriched: list[dict] = []
-        for base in best:
-            immersive_url = base.get("serpapi_immersive_product_api")
-            product_results = None
+        for idx, base in enumerate(best, start=1):
+            title = _safe_str(base.get("title"))
+            pid = _safe_str(base.get("product_id"))
+            logger.info("Enriching item %d/%d title=%r pid=%r", idx, len(best), title, pid)
 
-            if immersive_url:
-                immersive_url = _add_api_key(immersive_url, SERPAPI_API_KEY)
-                try:
-                    r2 = await client.get(immersive_url)
-                    r2.raise_for_status()
-                    immersive = r2.json()
-                    product_results = immersive.get("product_results") or immersive.get("product_result")
-                except httpx.HTTPError:
-                    product_results = None
+            # prefer snippet
+            desc = _safe_str(base.get("snippet") or base.get("description") or "")
+            if desc:
+                logger.debug("Desc from snippet/inline (len=%d)", len(desc))
 
-            # enriched.append(_as_vector_record(base, product_results))
+            # try immersive if still empty
+            if not desc:
+                imm_url = base.get("serpapi_immersive_product_api")
+                if imm_url:
+                    try:
+                        full_imm = _add_api_key(imm_url, SERPAPI_API_KEY)
+                        logger.debug("Fetching immersive for item: %s", full_imm)
+                        r3 = await client.get(full_imm)
+                        r3.raise_for_status()
+                        imm2 = r3.json()
+                        pr2 = imm2.get("product_results") or imm2.get("product_result") or {}
+                        desc = _safe_str((pr2.get("about_the_product") or {}).get("description") or "")
+                        logger.debug("Desc from immersive (len=%d)", len(desc))
+                    except Exception as e:
+                        logger.exception("Immersive fetch failed for title=%r: %s", title, e)
+                        desc = ""
+                else:
+                    logger.debug("No immersive url for title=%r", title)
 
-    return enriched
+            # fallback: global_desc
+            if not desc and global_desc:
+                desc = global_desc
+                logger.debug("Desc fallback -> global_desc (len=%d)", len(desc))
+
+            # fallback: last resort
+            if not desc:
+                desc = "Product found on the web. Open the link for full details."
+                logger.debug("Desc fallback -> generic")
+
+            enriched.append(_as_vector_record(base, description=desc))
+
+        logger.info("web_search_products done -> returning %d items", len(enriched))
+        return enriched

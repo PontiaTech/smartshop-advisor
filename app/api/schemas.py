@@ -74,6 +74,7 @@ class CompleteSearchProduct(BaseModel):
     url: Optional[str] = None
     image: Optional[str] = None
     score: float
+    color: Optional[str] = None
 
 
 class CompleteSearchResponse(BaseModel):

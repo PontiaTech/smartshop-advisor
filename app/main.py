@@ -14,7 +14,7 @@ from app.observability.metrics import REQUEST_COUNT, ERROR_COUNT, REQUEST_LATENC
 from fastapi.responses import Response
 
 from app.api.services.product_search import complete_search
-from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse, ChatRequest, ChatResponse
+from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse, ChatRequest, ChatResponse, WebSearchProduct
 from app.api.utils.chat_utils import history_to_text, results_to_bullets, web_results_to_bullets
 from app.api.services.web_search import web_search_products
 from app.api.ai.llms import get_gemini_llm
@@ -326,7 +326,8 @@ async def chat_endpoint(body: ChatRequest):
                 source=r.get("source"),
                 url=r.get("url"),
                 image=r.get("image"),
-                score=float(r.get("score", r.get("clip_score", 0.0)) or 0.0),
+                score=float(r.get("score") or r.get("text_score") or 0.0),
+                color=r.get("color", None),
             )
             for r in raw_results
         ]
@@ -336,8 +337,30 @@ async def chat_endpoint(body: ChatRequest):
         llm = get_gemini_llm()
         try:
             results = await translate_results(results=results, llm=llm, target_lang=target_lang)
-        except Exception:
-            pass # Es q hay veces que me queda sin llamdas a gemini para que no me pete
+        except Exception as e:
+            logger.warning("translate_results failed (ignored): %s", e)
+            
+        web_results: list[WebSearchProduct] = []
+        web_txt = ""
+
+        try:
+            web_items = await web_search_products(body.query, k=3, lang=target_lang)
+            web_txt = web_results_to_bullets(web_items)
+
+            web_results = [
+                WebSearchProduct(
+                    title=(it.get("product_name") or it.get("title") or "").strip(),
+                    url=it.get("url"),
+                    snippet=(it.get("description") or it.get("snippet") or None),
+                    source=it.get("source"),
+                )
+                for it in (web_items or [])
+                if it.get("url")
+            ]
+        except Exception as e:
+            logger.warning("web_search_products failed (ignored): %s", e)
+            web_results = []
+            web_txt = ""
 
         hist_txt = history_to_text(body.history)
         limit = min(max(body.top_k, 6), 12)
@@ -353,7 +376,7 @@ async def chat_endpoint(body: ChatRequest):
              "Historial:\n{history}\n\n"
              "Query:\n{query}\n\n"
              "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
-             # "Resultados encontrados en internet:\n{web_products}\n\n"
+             "Resultados encontrados en internet (si están vacíos, ignora esta sección):\n{web_products}\n\n"
              "Genera la respuesta."
             )
         ])
@@ -365,7 +388,7 @@ async def chat_endpoint(body: ChatRequest):
             "history": hist_txt or "(vacío)",
             "query": body.query,
             "products": products_txt or "(sin resultados)",
-            # "web_products": web_txt or "(sin resultados web)",
+            "web_products": web_txt or "(sin resultados web)",
         })
 
         answer = getattr(llm_out, "content", None) or str(llm_out)
@@ -374,6 +397,7 @@ async def chat_endpoint(body: ChatRequest):
             answer=answer.strip(),
             predicted_type=predicted_type,
             results=results,
+            web_results=web_results or None,
         )
 
     except Exception as e:
