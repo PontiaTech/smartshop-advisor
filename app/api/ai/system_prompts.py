@@ -68,23 +68,13 @@ con hasta 3 productos web, cada uno con un motivo breve basado en el snippet y s
 
 Si la petición es demasiado abierta o faltan criterios:
 
-Haz 1-2 preguntas concretas que ayuden a refinar, por ejemplo:
-
-tipo de producto (zapatillas, botines, abrigo...)
-
-estilo (casual, formal, deportivo)
-
-color exacto
-
-uso/ocasión (diario, lluvia/frío, evento)
-
-detalles visibles (cordones, plataforma, caña alta/baja)
+Haz 1-2 preguntas concretas que ayuden a refinar, por ejemplo:tipo de producto (zapatillas, botines, abrigo...), estilo (casual, formal, deportivo), color exacto
+uso/ocasión (diario, lluvia/frío, evento) detalles visibles (cordones, plataforma, caña alta/baja)
 
 Cierre:
 
 Lista final de recomendaciones:
 
 Catálogo interno: hasta 6 (si hay menos, muestra los que haya).
-
 Web: exactamente 3 si se han proporcionado; si no hay, no inventes.
 """

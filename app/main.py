@@ -18,6 +18,7 @@ from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, Comple
 from app.api.utils.chat_utils import history_to_text, results_to_bullets, web_results_to_bullets
 from app.api.services.web_search import web_search_products
 from app.api.ai.llms import get_gemini_llm
+from app.api.utils.seach_context import build_search_query
 # from langchain.prompts import ChatPromptTemplate
 from langchain_core.prompts import ChatPromptTemplate
 from app.api.ai.system_prompts import CHATBOT_SYSTEM_PROMPT, FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT
@@ -311,6 +312,10 @@ async def complete_search_endpoint(body: CompleteSearchRequest):
 @app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Gemini")
 async def chat_endpoint(body: ChatRequest):
     try:
+        # logger.info("", extra={"endpoint": "/chat", "type": "info", "status": status, "method": request.method})
+        # Sacamaos el contexto del chat
+        search_query, used_ctx = build_search_query(body.query, body.history)
+        
         # RAG
         rag = complete_search(body.query, n_results=body.top_k)
 
