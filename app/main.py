@@ -312,12 +312,14 @@ async def complete_search_endpoint(body: CompleteSearchRequest):
 @app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Gemini")
 async def chat_endpoint(body: ChatRequest):
     try:
-        # logger.info("", extra={"endpoint": "/chat", "type": "info", "status": status, "method": request.method})
+        logger.info("Chat request received", extra={"endpoint": "/chat", "query": body.query, "history_len": len(body.history or []), "method": "POST"})
         # Sacamaos el contexto del chat
         search_query, used_ctx = build_search_query(body.query, body.history)
         
+        logger.info("Search context resolved", extra={"endpoint": "/chat", "original_query": body.query, "search_query": search_query, "used_ctx": used_ctx})
+        
         # RAG
-        rag = complete_search(body.query, n_results=body.top_k)
+        rag = complete_search(search_query, n_results=body.top_k)
 
         predicted_type = rag.get("predicted_type")
         raw_results = rag.get("results", []) or []
@@ -343,13 +345,13 @@ async def chat_endpoint(body: ChatRequest):
         try:
             results = await translate_results(results=results, llm=llm, target_lang=target_lang)
         except Exception as e:
-            logger.warning("translate_results failed (ignored): %s", e)
+            logger.warning("translate_results failed (ignored): %s", e, extra={"endpoint": "/chat", "error": str(e)},)
             
         web_results: list[WebSearchProduct] = []
         web_txt = ""
 
         try:
-            web_items = await web_search_products(body.query, k=3, lang=target_lang)
+            web_items = await web_search_products(search_query, k=3, lang=target_lang)
             web_txt = web_results_to_bullets(web_items)
 
             web_results = [
@@ -363,7 +365,7 @@ async def chat_endpoint(body: ChatRequest):
                 if it.get("url")
             ]
         except Exception as e:
-            logger.warning("web_search_products failed (ignored): %s", e)
+            logger.warning("web_search_products failed (ignored): %s", e, extra={"endpoint": "/chat", "error": str(e)},)
             web_results = []
             web_txt = ""
 
@@ -391,12 +393,14 @@ async def chat_endpoint(body: ChatRequest):
         llm_out = await chain.ainvoke({
             "target_language": target_lang,
             "history": hist_txt or "(vacío)",
-            "query": body.query,
+            "query": search_query,
             "products": products_txt or "(sin resultados)",
             "web_products": web_txt or "(sin resultados web)",
         })
 
         answer = getattr(llm_out, "content", None) or str(llm_out)
+        
+        logger.info("Chat response generated", extra={"endpoint": "/chat", "used_context": used_ctx, "results_count": len(results),"web_results_count": len(web_results),})
 
         return ChatResponse(
             answer=answer.strip(),
@@ -406,4 +410,5 @@ async def chat_endpoint(body: ChatRequest):
         )
 
     except Exception as e:
+        logger.exception("Chat endpoint failed", extra={"endpoint": "/chat", "error": str(e)})
         raise HTTPException(status_code=500, detail=str(e))

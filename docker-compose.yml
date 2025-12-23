@@ -29,6 +29,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    pull_policy: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - smartshopadvisor-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:11434/api/tags >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+
   api-smartshopadvisor:
     build: .
     container_name: api-smartshopadvisor
@@ -37,13 +57,20 @@ services:
     env_file:
     - .env
     environment:
+      # Para base de datos
       DB_HOST: db-smartshopadvisor
       DB_PORT: 5432
       DB_USER: user
       DB_PASSWORD: password
       DB_NAME: smartshop_db
+      # Pra base de datos vectorial
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
+      # Para el modelo de Ollama en local
+      OLLAMA_HOST: ollama
+      OLLAMA_PORT: 11434
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2:3b
     depends_on:
       db-smartshopadvisor:
         condition: service_healthy
@@ -57,6 +84,8 @@ services:
         condition: service_started
       grafana:
         condition: service_started
+      ollama:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
@@ -167,3 +196,4 @@ volumes:
   promtail_data: {}
   loki_data: {}
   grafana_data: {}
+  ollama_data: {}
