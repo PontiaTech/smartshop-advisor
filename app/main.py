@@ -17,7 +17,7 @@ from app.api.services.product_search import complete_search
 from app.api.schemas import CompleteSearchProduct, CompleteSearchRequest, CompleteSearchResponse, ChatRequest, ChatResponse, WebSearchProduct
 from app.api.utils.chat_utils import history_to_text, results_to_bullets, web_results_to_bullets
 from app.api.services.web_search import web_search_products
-from app.api.ai.llms import get_gemini_llm
+from app.api.ai.llms import get_llm
 from app.api.utils.seach_context import build_search_query
 # from langchain.prompts import ChatPromptTemplate
 from langchain_core.prompts import ChatPromptTemplate
@@ -309,7 +309,7 @@ async def complete_search_endpoint(body: CompleteSearchRequest):
     
     
     
-@app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Gemini")
+@app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Ollama")
 async def chat_endpoint(body: ChatRequest):
     try:
         logger.info("Chat request received", extra={"endpoint": "/chat", "query": body.query, "history_len": len(body.history or []), "method": "POST"})
@@ -341,9 +341,10 @@ async def chat_endpoint(body: ChatRequest):
         
         
         target_lang = (body.target_language or "es").strip().lower()
-        llm = get_gemini_llm()
+        llm = get_llm()
         try:
             results = await translate_results(results=results, llm=llm, target_lang=target_lang)
+            logger.info("translate_results ok", extra={"endpoint": "/chat", "target_lang": target_lang})
         except Exception as e:
             logger.warning("translate_results failed (ignored): %s", e, extra={"endpoint": "/chat", "error": str(e)},)
             
