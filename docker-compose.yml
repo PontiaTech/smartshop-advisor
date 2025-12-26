@@ -31,24 +31,41 @@ services:
       retries: 5
 
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    pull_policy: always
-    ports:
-      - "11434:11434"
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   pull_policy: always
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   networks:
+  #     - smartshopadvisor-net
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/11434'"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 30
+  #     start_period: 20s
+
+  ui-gradio:
+    image: python:3.10-slim
+    container_name: ui-gradio
+    working_dir: /app
     volumes:
-      - ollama_data:/root/.ollama
+      - .:/app
+    environment:
+      API_URL: http://api-smartshopadvisor:8000/chat
+    command: >
+      sh -c "pip install --no-cache-dir gradio requests &&
+            python -u app/frontend/user_intf.py"
+    ports:
+      - "7860:7860"
+    depends_on:
+      - api-smartshopadvisor
     networks:
       - smartshopadvisor-net
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/11434'"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 20s
-
 
   api-smartshopadvisor:
     build: .
@@ -68,10 +85,10 @@ services:
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
       # Para el modelo de Ollama en local
-      OLLAMA_HOST: ollama
-      OLLAMA_PORT: 11434
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: llama3.2:3b
+      # OLLAMA_HOST: ollama
+      # OLLAMA_PORT: 11434
+      # OLLAMA_BASE_URL: http://ollama:11434
+      # OLLAMA_MODEL: llama3.2:3b
     depends_on:
       db-smartshopadvisor:
         condition: service_healthy
@@ -85,8 +102,8 @@ services:
         condition: service_started
       grafana:
         condition: service_started
-      ollama:
-        condition: service_healthy
+      # ollama:
+      #   condition: service_healthy
     logging:
       driver: "json-file"
       options:
@@ -197,4 +214,4 @@ volumes:
   promtail_data: {}
   loki_data: {}
   grafana_data: {}
-  ollama_data: {}
+  # ollama_data: {}
