@@ -1,7 +1,8 @@
 import gradio as gr
 import requests
+import os
 
-API_URL = "http://localhost:8001/chat"  # desde docker compose
+API_URL = os.getenv("API_URL", "http://api-smartshopadvisor:8000/chat")
 
 
 def call_chat_api(message: str, history: list, top_k: int, target_language: str):

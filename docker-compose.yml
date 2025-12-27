@@ -50,16 +50,12 @@ services:
   #     start_period: 20s
 
   ui-gradio:
-    image: python:3.10-slim
+    build:
+      context: .
+      dockerfile: app/frontend/Dockerfile
     container_name: ui-gradio
-    working_dir: /app
-    volumes:
-      - .:/app
     environment:
       API_URL: http://api-smartshopadvisor:8000/chat
-    command: >
-      sh -c "pip install --no-cache-dir gradio requests &&
-            python -u app/frontend/user_intf.py"
     ports:
       - "7860:7860"
     depends_on:
