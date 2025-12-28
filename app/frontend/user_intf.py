@@ -5,17 +5,27 @@ import os
 API_URL = os.getenv("API_URL", "http://api-smartshopadvisor:8000/chat")
 
 
-def call_chat_api(message: str, history: list, top_k: int, target_language: str):
+def call_chat_api(message: str, chat_history: list, api_history: list, top_k: int, target_language: str, show_details: bool):
     """
-    history (Gradio) llega como lista de mensajes: [{"role": "user"/"assistant", "content": "..."}]
-    La API espera: ChatRequest(query, history, top_k, target_language)
+    chat_history: lo que se muestra en gr.Chatbot (formato libre, normalmente lista de tuplas)
+    api_history: memoria estable para la API, SIEMPRE con formato:
+        [{"sender":"user","content":"..."}, {"sender":"assistant","content":"..."}]
+    Devuelve:
+    - chat_history (display)
+    - api_history (memoria)
+    - limpiar textbox
+    - status
+    - gallery (imagenes)
+    - links markdown
     """
     if not message or not message.strip():
-        return history, gr.update(value=""), "Escribe una consulta primero."
+        return chat_history, api_history, gr.update(value=""), "Escribe una consulta primero.", [], ""
+
+    user_msg = message.strip()
 
     payload = {
-        "query": message.strip(),
-        "history": history or [],
+        "query": user_msg,
+        "history": api_history or [],  # <- AQUÍ está la clave: NO uses el chatbox como memoria
         "top_k": int(top_k),
         "target_language": (target_language or "es").strip().lower(),
     }
@@ -23,108 +33,134 @@ def call_chat_api(message: str, history: list, top_k: int, target_language: str)
     try:
         resp = requests.post(API_URL, json=payload, timeout=180)
     except Exception as e:
-        history = history or []
-        history.append({"role": "assistant", "content": f"Error conectando a la API: {e}"})
-        return history, gr.update(value=""), "No se pudo conectar a la API."
+        # display
+        chat_history = chat_history or []
+        chat_history.append((user_msg, f"Error conectando a la API: {e}"))
+        # memoria: guardamos solo el user, no inventamos respuesta
+        api_history = api_history or []
+        api_history.append({"sender": "user", "content": user_msg})
+        return chat_history, api_history, gr.update(value=""), "No se pudo conectar a la API.", [], ""
 
     if resp.status_code != 200:
-        history = history or []
-        history.append({"role": "assistant", "content": f"Error API ({resp.status_code}): {resp.text}"})
-        return history, gr.update(value=""), f"HTTP {resp.status_code}"
+        chat_history = chat_history or []
+        chat_history.append((user_msg, f"Error API ({resp.status_code}): {resp.text}"))
+
+        api_history = api_history or []
+        api_history.append({"sender": "user", "content": user_msg})
+        api_history.append({"sender": "assistant", "content": f"Error API ({resp.status_code})."})
+
+        return chat_history, api_history, gr.update(value=""), f"HTTP {resp.status_code}", [], ""
 
     data = resp.json()
 
     answer = (data.get("answer") or "").strip()
-    predicted_type = data.get("predicted_type") or ""
     results = data.get("results") or []
     web_results = data.get("web_results") or []
 
-    # Mensaje principal (bonito y compacto)
-    header = []
-    if predicted_type:
-        header.append(f"Categoría inferida: {predicted_type}")
-    header_txt = ("\n".join(header) + "\n\n") if header else ""
+    # Respuesta que verá el usuario en el chat
+    clean_answer = answer if answer else "No he encontrado recomendaciones claras para esa consulta."
 
-    # Sección catálogo interno (top results)
-    internal_md = ""
-    if results:
-        internal_md += "Catálogo interno\n\n"
-        for i, r in enumerate(results[: min(len(results), 8)], start=1):
-            name = (r.get("product_name") or "").strip()
-            fam = (r.get("product_family") or "").strip()
-            desc = (r.get("description") or "").strip()
-            url = r.get("url") or ""
-            score = r.get("score", 0.0)
-            color = (r.get("color") or "").strip()
+    # Construimos gallery + links a partir de results
+    images = []
+    links_txt = ""
+    for i, r in enumerate(results[: min(len(results), 8)], start=1):
+        name = (r.get("product_name") or f"Producto {i}").strip()
+        url = (r.get("url") or "").strip()
+        img = (r.get("image") or "").strip()
 
-            line = f"- {i}. {name}"
-            if fam:
-                line += f" - {fam}"
-            if color:
-                line += f" - color: {color}"
-            line += f" - score: {score:.3f}"
+        if img:
+            images.append((img, name))
+        if url:
+            links_txt += f"- [{name}]({url})\n"
 
-            internal_md += line + "\n"
-            if desc:
-                internal_md += f"  - {desc}\n"
-            if url:
-                internal_md += f"  - Link: {url}\n"
-        internal_md += "\n"
+    # Debug opcional: solo afecta al DISPLAY, NO a la memoria
+    display_answer = clean_answer
+    if show_details:
+        internal_md = ""
+        if results:
+            internal_md += "Detalles (catálogo interno)\n\n"
+            for i, r in enumerate(results[: min(len(results), 8)], start=1):
+                name = (r.get("product_name") or "").strip()
+                fam = (r.get("product_family") or "").strip()
+                desc = (r.get("description") or "").strip()
+                url = (r.get("url") or "").strip()
+                score = float(r.get("score", 0.0) or 0.0)
+                color = (r.get("color") or "").strip()
 
-    # Sección web
-    web_md = ""
-    if web_results:
-        web_md += "Resultados web\n\n"
-        for i, w in enumerate(web_results[:3], start=1):
-            title = (w.get("title") or "").strip()
-            url = w.get("url") or ""
-            snippet = (w.get("snippet") or "").strip()
-            source = (w.get("source") or "").strip()
+                line = f"- {i}. {name}"
+                if fam:
+                    line += f" - {fam}"
+                if color:
+                    line += f" - color: {color}"
+                line += f" - score: {score:.3f}"
+                internal_md += line + "\n"
+                if desc:
+                    internal_md += f"  - {desc}\n"
+                if url:
+                    internal_md += f"  - {url}\n"
+            internal_md += "\n"
 
-            web_md += f"- {i}. {title}"
-            if source:
-                web_md += f" - fuente: {source}"
+        web_md = ""
+        if web_results:
+            web_md += "Detalles (web)\n\n"
+            for i, w in enumerate(web_results[:3], start=1):
+                title = (w.get("title") or "").strip()
+                url = (w.get("url") or "").strip()
+                snippet = (w.get("snippet") or "").strip()
+                source = (w.get("source") or "").strip()
+
+                web_md += f"- {i}. {title}"
+                if source:
+                    web_md += f" - fuente: {source}"
+                web_md += "\n"
+                if snippet:
+                    web_md += f"  - {snippet}\n"
+                if url:
+                    web_md += f"  - {url}\n"
             web_md += "\n"
-            if snippet:
-                web_md += f"  - {snippet}\n"
-            if url:
-                web_md += f"  - Link: {url}\n"
-        web_md += "\n"
 
-    final_msg = (header_txt + answer).strip()
-    if internal_md or web_md:
-        final_msg += "\n\n---\n\n"
-        if internal_md:
-            final_msg += internal_md
-        if web_md:
-            final_msg += web_md
+        if internal_md or web_md:
+            display_answer = (display_answer + "\n\n---\n\n" + (internal_md + web_md).strip()).strip()
 
-    # Actualiza historial
-    history = history or []
-    history.append({"role": "user", "content": message.strip()})
-    history.append({"role": "assistant", "content": final_msg})
+    # Actualiza display (Chatbot): usamos tuplas (user, assistant), es lo más estable
+    chat_history = chat_history or []
+    chat_history.append((user_msg, display_answer))
 
-    return history, gr.update(value=""), "OK"
+    # Actualiza memoria API: SOLO texto limpio (sin debug)
+    api_history = api_history or []
+    api_history.append({"sender": "user", "content": user_msg})
+    api_history.append({"sender": "assistant", "content": clean_answer})
+
+    return chat_history, api_history, gr.update(value=""), "OK", images, links_txt
 
 
 def reset_chat():
-    return [], "", "Chat reiniciado."
+    # chat_history, api_history, textbox, status, gallery, links
+    return [], [], "", "Chat reiniciado.", [], ""
 
 
-with gr.Blocks(title="SmartShop Advisor - TFM") as demo:
-    gr.Markdown("# SmartShop Advisor\nInterfaz de demo para el TFM (RAG + recomendación)")
+with gr.Blocks(title="SmartShop Advisor Chatbot") as demo:
+    gr.Markdown("# SmartShop Advisor\n")
+
+    # Estado para la memoria real del chatbot (la que se manda a la API)
+    api_history = gr.State([])
 
     with gr.Row():
         with gr.Column(scale=3):
             chatbox = gr.Chatbot(label="Chat", height=520)
+
             txt = gr.Textbox(
                 label="Tu consulta",
                 placeholder="Ej: Quiero unas zapatillas blancas minimalistas para diario, máximo 120€",
                 lines=2,
             )
+
             with gr.Row():
                 send = gr.Button("Enviar", variant="primary")
                 clear = gr.Button("Nueva conversación")
+
+            gallery = gr.Gallery(label="Productos recomendados", columns=2, height=320)
+            links_md = gr.Markdown()
 
         with gr.Column(scale=1):
             gr.Markdown("## Ajustes")
@@ -134,6 +170,7 @@ with gr.Blocks(title="SmartShop Advisor - TFM") as demo:
                 value="es",
                 label="Idioma de respuesta",
             )
+            show_details = gr.Checkbox(label="Mostrar detalles (debug)", value=False)
             status = gr.Textbox(label="Estado", value="Listo.", interactive=False)
 
             gr.Markdown(
@@ -144,14 +181,20 @@ with gr.Blocks(title="SmartShop Advisor - TFM") as demo:
 
     send.click(
         call_chat_api,
-        inputs=[txt, chatbox, top_k, target_language],
-        outputs=[chatbox, txt, status],
+        inputs=[txt, chatbox, api_history, top_k, target_language, show_details],
+        outputs=[chatbox, api_history, txt, status, gallery, links_md],
     )
+
     txt.submit(
         call_chat_api,
-        inputs=[txt, chatbox, top_k, target_language],
-        outputs=[chatbox, txt, status],
+        inputs=[txt, chatbox, api_history, top_k, target_language, show_details],
+        outputs=[chatbox, api_history, txt, status, gallery, links_md],
     )
-    clear.click(reset_chat, inputs=[], outputs=[chatbox, txt, status])
+
+    clear.click(
+        reset_chat,
+        inputs=[],
+        outputs=[chatbox, api_history, txt, status, gallery, links_md],
+    )
 
 demo.launch(server_name="0.0.0.0", server_port=7860, debug=True)
