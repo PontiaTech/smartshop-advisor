@@ -1,31 +1,73 @@
 import gradio as gr
 import requests
 import os
+import hashlib
+from pathlib import Path
+
+IMG_CACHE_DIR = Path("/tmp/smartshop_images")
+IMG_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+def _safe_ext_from_ct(content_type: str) -> str:
+    ct = (content_type or "").lower()
+    if "png" in ct:
+        return "png"
+    if "webp" in ct:
+        return "webp"
+    if "gif" in ct:
+        return "gif"
+    return "jpg"
+
+def download_image_to_cache(url: str, timeout: int = 15) -> str | None:
+    """
+    Descarga una imagen remota y devuelve una ruta local.
+    Si ya existe en cache, la reutiliza.
+    """
+    url = (url or "").strip()
+    if not url:
+        return None
+
+    key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+    # intentamos encontrarla ya descargada con cualquier extensión común
+    for ext in ("jpg", "png", "webp", "gif"):
+        p = IMG_CACHE_DIR / f"{key}.{ext}"
+        if p.exists() and p.stat().st_size > 0:
+            return str(p)
+
+    try:
+        r = requests.get(url, timeout=timeout, stream=True, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code != 200:
+            return None
+
+        ct = r.headers.get("Content-Type", "")
+        if "image" not in ct.lower():
+            return None
+
+        ext = _safe_ext_from_ct(ct)
+        out = IMG_CACHE_DIR / f"{key}.{ext}"
+
+        with open(out, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024 * 64):
+                if chunk:
+                    f.write(chunk)
+
+        if out.exists() and out.stat().st_size > 0:
+            return str(out)
+        return None
+    except Exception:
+        return None
 
 API_URL = os.getenv("API_URL", "http://api-smartshopadvisor:8000/chat")
 
 
 def call_chat_api(message: str, chat_history: list, api_history: list, top_k: int, target_language: str, show_details: bool):
-    """
-    chat_history: lo que se muestra en gr.Chatbot (formato libre, normalmente lista de tuplas)
-    api_history: memoria estable para la API, SIEMPRE con formato:
-        [{"sender":"user","content":"..."}, {"sender":"assistant","content":"..."}]
-    Devuelve:
-    - chat_history (display)
-    - api_history (memoria)
-    - limpiar textbox
-    - status
-    - gallery (imagenes)
-    - links markdown
-    """
     if not message or not message.strip():
-        return chat_history, api_history, gr.update(value=""), "Escribe una consulta primero.", [], ""
+        return chat_history, api_history, gr.update(value=""), "Escribe una consulta primero.", "", ""
 
     user_msg = message.strip()
 
     payload = {
         "query": user_msg,
-        "history": api_history or [],  # <- AQUÍ está la clave: NO uses el chatbox como memoria
+        "history": api_history or [],
         "top_k": int(top_k),
         "target_language": (target_language or "es").strip().lower(),
     }
@@ -33,23 +75,25 @@ def call_chat_api(message: str, chat_history: list, api_history: list, top_k: in
     try:
         resp = requests.post(API_URL, json=payload, timeout=180)
     except Exception as e:
-        # display
         chat_history = chat_history or []
-        chat_history.append((user_msg, f"Error conectando a la API: {e}"))
-        # memoria: guardamos solo el user, no inventamos respuesta
+        chat_history.append({"role": "user", "content": user_msg})
+        chat_history.append({"role": "assistant", "content": f"Error conectando a la API: {e}"})
+
         api_history = api_history or []
         api_history.append({"sender": "user", "content": user_msg})
-        return chat_history, api_history, gr.update(value=""), "No se pudo conectar a la API.", [], ""
+
+        return chat_history, api_history, gr.update(value=""), "No se pudo conectar a la API.", "", ""
 
     if resp.status_code != 200:
         chat_history = chat_history or []
-        chat_history.append((user_msg, f"Error API ({resp.status_code}): {resp.text}"))
+        chat_history.append({"role": "user", "content": user_msg})
+        chat_history.append({"role": "assistant", "content": f"Error API ({resp.status_code}): {resp.text}"})
 
         api_history = api_history or []
         api_history.append({"sender": "user", "content": user_msg})
         api_history.append({"sender": "assistant", "content": f"Error API ({resp.status_code})."})
 
-        return chat_history, api_history, gr.update(value=""), f"HTTP {resp.status_code}", [], ""
+        return chat_history, api_history, gr.update(value=""), f"HTTP {resp.status_code}", "", ""
 
     data = resp.json()
 
@@ -57,86 +101,86 @@ def call_chat_api(message: str, chat_history: list, api_history: list, top_k: in
     results = data.get("results") or []
     web_results = data.get("web_results") or []
 
-    # Respuesta que verá el usuario en el chat
     clean_answer = answer if answer else "No he encontrado recomendaciones claras para esa consulta."
 
-    # Construimos gallery + links a partir de results
-    images = []
-    links_txt = ""
-    for i, r in enumerate(results[: min(len(results), 8)], start=1):
-        name = (r.get("product_name") or f"Producto {i}").strip()
-        url = (r.get("url") or "").strip()
-        img = (r.get("image") or "").strip()
-
-        if img:
-            images.append((img, name))
-        if url:
-            links_txt += f"- [{name}]({url})\n"
-
-    # Debug opcional: solo afecta al DISPLAY, NO a la memoria
     display_answer = clean_answer
     if show_details:
-        internal_md = ""
-        if results:
-            internal_md += "Detalles (catálogo interno)\n\n"
-            for i, r in enumerate(results[: min(len(results), 8)], start=1):
-                name = (r.get("product_name") or "").strip()
-                fam = (r.get("product_family") or "").strip()
-                desc = (r.get("description") or "").strip()
-                url = (r.get("url") or "").strip()
-                score = float(r.get("score", 0.0) or 0.0)
-                color = (r.get("color") or "").strip()
+        dbg = [
+            "Debug",
+            f"- results: {len(results)}",
+            f"- web_results: {len(web_results)}",
+        ]
+        display_answer = (display_answer + "\n\n" + "\n".join(dbg)).strip()
 
-                line = f"- {i}. {name}"
-                if fam:
-                    line += f" - {fam}"
-                if color:
-                    line += f" - color: {color}"
-                line += f" - score: {score:.3f}"
-                internal_md += line + "\n"
-                if desc:
-                    internal_md += f"  - {desc}\n"
-                if url:
-                    internal_md += f"  - {url}\n"
-            internal_md += "\n"
-
-        web_md = ""
-        if web_results:
-            web_md += "Detalles (web)\n\n"
-            for i, w in enumerate(web_results[:3], start=1):
-                title = (w.get("title") or "").strip()
-                url = (w.get("url") or "").strip()
-                snippet = (w.get("snippet") or "").strip()
-                source = (w.get("source") or "").strip()
-
-                web_md += f"- {i}. {title}"
-                if source:
-                    web_md += f" - fuente: {source}"
-                web_md += "\n"
-                if snippet:
-                    web_md += f"  - {snippet}\n"
-                if url:
-                    web_md += f"  - {url}\n"
-            web_md += "\n"
-
-        if internal_md or web_md:
-            display_answer = (display_answer + "\n\n---\n\n" + (internal_md + web_md).strip()).strip()
-
-    # Actualiza display (Chatbot): usamos tuplas (user, assistant), es lo más estable
+    # Chat en formato messages (lo que pide tu Gradio)
     chat_history = chat_history or []
-    chat_history.append((user_msg, display_answer))
+    chat_history.append({"role": "user", "content": user_msg})
+    chat_history.append({"role": "assistant", "content": display_answer})
 
-    # Actualiza memoria API: SOLO texto limpio (sin debug)
+    # Memoria API (sender/content)
     api_history = api_history or []
     api_history.append({"sender": "user", "content": user_msg})
     api_history.append({"sender": "assistant", "content": clean_answer})
 
-    return chat_history, api_history, gr.update(value=""), "OK", images, links_txt
+    # Cards HTML
+    top_n = min(len(results), 6)
+    cards = []
+    links_txt = ""
+
+    for i, r in enumerate(results[:top_n], start=1):
+        name = (r.get("product_name") or f"Producto {i}").strip()
+        url = (r.get("url") or "").strip()
+        img = (r.get("image") or "").strip()
+        desc = (r.get("description") or "").strip()
+
+        if url:
+            links_txt += f"- [{i}. {name}]({url})\n"
+
+        img_block = (
+            f'<img src="{img}" alt="{name}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid #eee;" />'
+            if img else
+            '<div style="width:100%;height:170px;background:#f2f2f2;border-radius:12px;border:1px solid #eee;"></div>'
+        )
+
+        desc_html = (
+            f'<div style="color:#444;font-size:13px;line-height:1.25;margin-top:6px;max-height:50px;overflow:hidden;">{desc}</div>'
+            if desc else
+            '<div style="color:#666;font-size:13px;margin-top:6px;">Sin descripción.</div>'
+        )
+
+        btn_html = (
+            f'<a href="{url}" target="_blank" style="display:inline-block;margin-top:10px;padding:8px 10px;border-radius:10px;text-decoration:none;border:1px solid #ddd;background:#fff;">Ver producto</a>'
+            if url else
+            ""
+        )
+
+        cards.append(f"""
+        <div style="border:1px solid #eee;border-radius:16px;padding:10px;background:white;">
+          {img_block}
+          <div style="margin-top:10px;font-weight:600;font-size:14px;">{i}. {name}</div>
+          {desc_html}
+          {btn_html}
+        </div>
+        """)
+
+    cards_html = ""
+    if cards:
+        cards_html = f"""
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+          {''.join(cards)}
+        </div>
+        """
+
+    return chat_history, api_history, gr.update(value=""), "OK", cards_html, links_txt
+
+
+
+
 
 
 def reset_chat():
-    # chat_history, api_history, textbox, status, gallery, links
-    return [], [], "", "Chat reiniciado.", [], ""
+    return [], [], "", "Chat reiniciado.", "", ""
+
 
 
 with gr.Blocks(title="SmartShop Advisor Chatbot") as demo:
@@ -159,7 +203,8 @@ with gr.Blocks(title="SmartShop Advisor Chatbot") as demo:
                 send = gr.Button("Enviar", variant="primary")
                 clear = gr.Button("Nueva conversación")
 
-            gallery = gr.Gallery(label="Productos recomendados", columns=2, height=320)
+            # gallery = gr.Gallery(label="Productos recomendados", columns=2, height=320)
+            cards_html = gr.HTML(label="Recomendaciones")
             links_md = gr.Markdown()
 
         with gr.Column(scale=1):
@@ -182,19 +227,19 @@ with gr.Blocks(title="SmartShop Advisor Chatbot") as demo:
     send.click(
         call_chat_api,
         inputs=[txt, chatbox, api_history, top_k, target_language, show_details],
-        outputs=[chatbox, api_history, txt, status, gallery, links_md],
+        outputs=[chatbox, api_history, txt, status, cards_html, links_md],
     )
 
     txt.submit(
         call_chat_api,
         inputs=[txt, chatbox, api_history, top_k, target_language, show_details],
-        outputs=[chatbox, api_history, txt, status, gallery, links_md],
+        outputs=[chatbox, api_history, txt, status, cards_html, links_md],
     )
 
     clear.click(
         reset_chat,
         inputs=[],
-        outputs=[chatbox, api_history, txt, status, gallery, links_md],
+        outputs=[chatbox, api_history, txt, status, cards_html, links_md],
     )
 
 demo.launch(server_name="0.0.0.0", server_port=7860, debug=True)

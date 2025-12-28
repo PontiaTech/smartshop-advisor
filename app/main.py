@@ -352,6 +352,7 @@ async def chat_endpoint(body: ChatRequest):
         web_txt = ""
 
         try:
+            logger.info("WEB query", extra={"q": search_query})
             web_items = await web_search_products(search_query, k=3, lang=target_lang)
             web_txt = web_results_to_bullets(web_items)
 
@@ -380,12 +381,17 @@ async def chat_endpoint(body: ChatRequest):
         prompt = ChatPromptTemplate.from_messages([
             ("system", FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT),
             ("human",
-             "Idioma de respuesta: {target_language}\n\n"
-             "Historial:\n{history}\n\n"
-             "Query:\n{query}\n\n"
-             "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
-             "Resultados encontrados en internet (si están vacíos, ignora esta sección):\n{web_products}\n\n"
-             "Genera la respuesta."
+            "Idioma de respuesta: {target_language}\n\n"
+            "Historial:\n{history}\n\n"
+            "Query:\n{query}\n\n"
+            "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
+            "Resultados encontrados en internet (si están vacíos, ignora esta sección):\n{web_products}\n\n"
+            "Reglas de salida (importante):\n"
+            "- Devuelve SOLO la respuesta final para el usuario.\n"
+            "- NO copies ni pegues literalmente listas, URLs, ni bloques completos de 'Resultados disponibles' o 'Resultados en internet'.\n"
+            "- Usa esos resultados solo como contexto para escoger 3-5 recomendaciones.\n"
+            "- Para cada recomendación: nombre del producto + 1 frase corta del porqué encaja.\n\n"
+            "Genera la respuesta."
             )
         ])
 
@@ -394,7 +400,8 @@ async def chat_endpoint(body: ChatRequest):
         llm_out = await chain.ainvoke({
             "target_language": target_lang,
             "history": hist_txt or "(vacío)",
-            "query": search_query,
+            "query": body.query,
+            "search_query": search_query,
             "products": products_txt or "(sin resultados)",
             "web_products": web_txt or "(sin resultados web)",
         })

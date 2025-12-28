@@ -109,6 +109,34 @@ def has_product_subject(text: str) -> bool:
 
     return noun_like or has_ents or concrete
 
+def has_explicit_subject(text: str) -> bool:
+    """
+    True si el texto incluye un producto/objeto claro (zapatillas, abrigo, etc.)
+    False si es un ajuste/atributo ("de deporte", "en negro", "más barato", etc.)
+    """
+    t = _norm(text)
+    if not t:
+        return False
+
+    words = _tokenize(t)
+
+    # Producto explícito (regla fuerte)
+    if any(w in PRODUCT_HINTS for w in words):
+        return True
+
+    # Si spaCy está disponible, exigimos al menos un NOUN/PROPN
+    # (en blank("es") esto no será fiable, por eso no es la única regla)
+    try:
+        doc = nlp(t)
+        noun_like = any(tok.pos_ in {"NOUN", "PROPN"} for tok in doc if tok.is_alpha)
+        if noun_like:
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
 def is_followup_query(text: str) -> bool:
     """
     Detecta ajustes típicos:
@@ -141,15 +169,8 @@ def is_followup_query(text: str) -> bool:
     hits = sum(1 for w in words if w in FOLLOWUP_MARKERS)
     return (hits / max(len(words), 1)) >= 0.35
 
-def build_search_query(user_query: str, history: list[ChatMessage] | None) -> tuple[str, bool]:
-    """
-    Devuelve (query_para_buscar, usado_contexto)
 
-    Reglas:
-    - Si es follow-up y hay last_q -> concatena "last_q. user_query"
-    - Si el user repite algo ya incluido, evita duplicar
-    - Si viene vacío (o solo espacios) -> devuelve last_q si existe
-    """
+def build_search_query(user_query: str, history: list[ChatMessage] | None) -> tuple[str, bool]:
     uq = (user_query or "").strip()
     last_q = history_last_user_query(history)
 
@@ -159,10 +180,21 @@ def build_search_query(user_query: str, history: list[ChatMessage] | None) -> tu
     if not last_q:
         return uq, False
 
-    if is_followup_query(uq):
-        # evita duplicación: si uq ya está dentro de last_q
-        if _norm(uq) in _norm(last_q):
+    # Regla nueva: si no tiene sujeto explícito, tratamos como follow-up
+    needs_context = is_followup_query(uq) or (not has_explicit_subject(uq))
+
+    if needs_context:
+    
+        uq2 = re.sub(r"^\s*y\s+", "", uq, flags=re.IGNORECASE).strip()
+        uq2 = uq2.rstrip("?").strip()
+
+        # evita duplicación simple: si el ajuste ya está incluido en la última query
+        if _norm(uq2) and _norm(uq2) in _norm(last_q):
             return last_q, True
-        return f"{last_q}. {uq}", True
+
+        if uq2:
+            return f"{last_q}. {uq2}", True
+        else:
+            return last_q, True
 
     return uq, False
