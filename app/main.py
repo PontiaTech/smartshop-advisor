@@ -5,6 +5,7 @@ from typing import List, Optional, Union
 from sentence_transformers import SentenceTransformer
 import pickle, chromadb, numpy as np, traceback, spacy, json
 from app.api.utils.language_detection import translate_results
+from app.api.ai.results_regulator import compact_products_for_judge, pick_by_indices
 
 import time
 import random
@@ -309,22 +310,217 @@ async def complete_search_endpoint(body: CompleteSearchRequest):
     
     
     
+# @app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Ollama")
+# async def chat_endpoint(body: ChatRequest):
+#     try:
+#         logger.info("Chat request received", extra={"endpoint": "/chat", "query": body.query, "history_len": len(body.history or []), "method": "POST"})
+#         # Sacamaos el contexto del chat
+#         search_query, used_ctx = build_search_query(body.query, body.history)
+        
+#         logger.info("Search context resolved", extra={"endpoint": "/chat", "original_query": body.query, "search_query": search_query, "used_ctx": used_ctx})
+        
+#         # RAG
+#         rag = complete_search(search_query, n_results=body.top_k)
+
+#         predicted_type = rag.get("predicted_type")
+#         raw_results = rag.get("results", []) or []
+
+#         # score final
+#         results = [
+#             CompleteSearchProduct(
+#                 product_name=r.get("product_name", ""),
+#                 product_family=r.get("product_family"),
+#                 description=r.get("description"),
+#                 source=r.get("source"),
+#                 url=r.get("url"),
+#                 image=r.get("image"),
+#                 score=float(r.get("score") or r.get("text_score") or 0.0),
+#                 color=r.get("color", None),
+#             )
+#             for r in raw_results
+#         ]
+        
+        
+#         target_lang = (body.target_language or "es").strip().lower()
+#         llm = get_llm()
+#         try:
+#             results = await translate_results(results=results, llm=llm, target_lang=target_lang)
+#             logger.info("translate_results ok", extra={"endpoint": "/chat", "target_lang": target_lang})
+#         except Exception as e:
+#             logger.warning("translate_results failed (ignored): %s", e, extra={"endpoint": "/chat", "error": str(e)},)
+            
+#         web_results: list[WebSearchProduct] = []
+#         web_txt = ""
+
+#         try:
+#             logger.info("WEB query", extra={"q": search_query})
+#             web_items = await web_search_products(search_query, k=3, lang=target_lang)
+#             web_txt = web_results_to_bullets(web_items)
+
+#             web_results = [
+#                 WebSearchProduct(
+#                     title=(it.get("product_name") or it.get("title") or "").strip(),
+#                     url=it.get("url"),
+#                     snippet=(it.get("description") or it.get("snippet") or None),
+#                     source=it.get("source"),
+#                 )
+#                 for it in (web_items or [])
+#                 if it.get("url")
+#             ]
+#         except Exception as e:
+#             logger.warning("web_search_products failed (ignored): %s", e, extra={"endpoint": "/chat", "error": str(e)},)
+#             web_results = []
+#             web_txt = ""
+
+#         hist_txt = history_to_text(body.history)
+#         limit = min(max(body.top_k, 6), 12)
+#         products_txt = results_to_bullets(results, limit=limit)
+#         # web_items = await web_search_products(body.query, k=3, lang=target_lang)
+#         # web_txt = web_results_to_bullets(web_items)
+
+
+#         prompt = ChatPromptTemplate.from_messages([
+#             ("system", FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT),
+#             ("human",
+#             "Idioma de respuesta: {target_language}\n\n"
+#             "Historial:\n{history}\n\n"
+#             "Query:\n{query}\n\n"
+#             "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
+#             "Resultados encontrados en internet (si están vacíos, ignora esta sección):\n{web_products}\n\n"
+#             "Reglas de salida (importante):\n"
+#             "- Devuelve SOLO la respuesta final para el usuario.\n"
+#             "- NO copies ni pegues literalmente listas, URLs, ni bloques completos de 'Resultados disponibles' o 'Resultados en internet'.\n"
+#             "- Usa esos resultados solo como contexto para escoger 3-5 recomendaciones.\n"
+#             "- Para cada recomendación: nombre del producto + 1 frase corta del porqué encaja.\n\n"
+#             "Genera la respuesta."
+#             )
+#         ])
+
+        
+#         chain = prompt | llm
+#         llm_out = await chain.ainvoke({
+#             "target_language": target_lang,
+#             "history": hist_txt or "(vacío)",
+#             "query": body.query,
+#             "search_query": search_query,
+#             "products": products_txt or "(sin resultados)",
+#             "web_products": web_txt or "(sin resultados web)",
+#         })
+
+#         answer = getattr(llm_out, "content", None) or str(llm_out)
+        
+#         logger.info("Chat response generated", extra={"endpoint": "/chat", "used_context": used_ctx, "results_count": len(results),"web_results_count": len(web_results),})
+
+#         return ChatResponse(
+#             answer=answer.strip(),
+#             predicted_type=predicted_type,
+#             results=results,
+#             web_results=web_results or None,
+#         )
+
+#     except Exception as e:
+#         logger.exception("Chat endpoint failed", extra={"endpoint": "/chat", "error": str(e)})
+#         raise HTTPException(status_code=500, detail=str(e))
+
+
+
 @app.post("/chat", response_model=ChatResponse, summary="Chatbot usando RAG + Ollama")
 async def chat_endpoint(body: ChatRequest):
     try:
-        logger.info("Chat request received", extra={"endpoint": "/chat", "query": body.query, "history_len": len(body.history or []), "method": "POST"})
-        # Sacamaos el contexto del chat
+        logger.info(
+            "Chat request received",
+            extra={
+                "endpoint": "/chat",
+                "query": body.query,
+                "history_len": len(body.history or []),
+                "method": "POST",
+            },
+        )
+
+        # Sacamos el contexto del chat
         search_query, used_ctx = build_search_query(body.query, body.history)
-        
-        logger.info("Search context resolved", extra={"endpoint": "/chat", "original_query": body.query, "search_query": search_query, "used_ctx": used_ctx})
-        
+
+        logger.info(
+            "Search context resolved",
+            extra={
+                "endpoint": "/chat",
+                "original_query": body.query,
+                "search_query": search_query,
+                "used_ctx": used_ctx,
+            },
+        )
+
+        target_lang = (body.target_language or "es").strip().lower()
+        llm = get_llm()
+
         # RAG
         rag = complete_search(search_query, n_results=body.top_k)
-
         predicted_type = rag.get("predicted_type")
         raw_results = rag.get("results", []) or []
 
-        # score final
+        # --- REGULADOR (LLM) para separar best/similar/ruido ---
+        judge_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "Eres un validador estricto de relevancia para un buscador de productos.\n"
+                    "Clasifica resultados del catálogo interno según su ajuste a la query.\n"
+                    "Devuelve SOLO JSON válido, sin texto extra.",
+                ),
+                (
+                    "human",
+                    "Query del usuario:\n{query}\n\n"
+                    "Resultados del catálogo (cada item tiene índice i):\n{items}\n\n"
+                    "Clasifica cada item en UNA categoría:\n"
+                    "- internal_best: encaja claramente\n"
+                    "- internal_similar: se parece pero no cumple bien\n"
+                    "- discard: no tiene que ver\n\n"
+                    "Sé conservador: si dudas, usa internal_similar.\n\n"
+                    "Devuelve JSON EXACTO:\n"
+                    "{\n"
+                    '  "internal_best":[1],\n'
+                    '  "internal_similar":[2,3],\n'
+                    '  "discard":[4,5],\n'
+                    '  "note":"1 frase breve"\n'
+                    "}",
+                ),
+            ]
+        )
+
+        judge = {"internal_best": [], "internal_similar": [], "discard": [], "note": ""}
+
+        try:
+            items_txt = compact_products_for_judge(raw_results, limit=8)
+            judge_out = await (judge_prompt | llm).ainvoke(
+                {"query": search_query, "items": items_txt}
+            )
+            judge_txt = getattr(judge_out, "content", None) or str(judge_out)
+            judge = json.loads(judge_txt)
+        except Exception as e:
+            logger.warning(
+                "judge failed (ignored): %s",
+                e,
+                extra={"endpoint": "/chat", "error": str(e)},
+            )
+            # fallback: no rompemos el flujo
+            judge = {
+                "internal_best": [],
+                "internal_similar": list(range(1, min(len(raw_results), 8) + 1)),
+                "discard": [],
+                "note": "Fallback: regulador no disponible.",
+            }
+
+        raw_best = pick_by_indices(raw_results, judge.get("internal_best", []))
+        raw_similar = pick_by_indices(raw_results, judge.get("internal_similar", []))
+
+        # si el regulador deja todo vacío y había resultados, al menos usa top3 como similares
+        if not raw_best and not raw_similar and raw_results:
+            raw_similar = raw_results[: min(len(raw_results), 3)]
+        # --- FIN REGULADOR ---
+
+        # Construimos results (best + similar) para mantener compatibilidad con la UI
+        raw_for_response = raw_best + raw_similar
+
         results = [
             CompleteSearchProduct(
                 product_name=r.get("product_name", ""),
@@ -336,21 +532,23 @@ async def chat_endpoint(body: ChatRequest):
                 score=float(r.get("score") or r.get("text_score") or 0.0),
                 color=r.get("color", None),
             )
-            for r in raw_results
+            for r in raw_for_response
         ]
-        
-        
-        target_lang = (body.target_language or "es").strip().lower()
-        llm = get_llm()
+
+        # Traducción (si aplica)
         try:
             results = await translate_results(results=results, llm=llm, target_lang=target_lang)
             logger.info("translate_results ok", extra={"endpoint": "/chat", "target_lang": target_lang})
         except Exception as e:
-            logger.warning("translate_results failed (ignored): %s", e, extra={"endpoint": "/chat", "error": str(e)},)
-            
+            logger.warning(
+                "translate_results failed (ignored): %s",
+                e,
+                extra={"endpoint": "/chat", "error": str(e)},
+            )
+
+        # WEB search
         web_results: list[WebSearchProduct] = []
         web_txt = ""
-
         try:
             logger.info("WEB query", extra={"q": search_query})
             web_items = await web_search_products(search_query, k=3, lang=target_lang)
@@ -367,48 +565,80 @@ async def chat_endpoint(body: ChatRequest):
                 if it.get("url")
             ]
         except Exception as e:
-            logger.warning("web_search_products failed (ignored): %s", e, extra={"endpoint": "/chat", "error": str(e)},)
+            logger.warning(
+                "web_search_products failed (ignored): %s",
+                e,
+                extra={"endpoint": "/chat", "error": str(e)},
+            )
             web_results = []
             web_txt = ""
 
+        # Preparamos texto para el prompt final (best / similar separados)
         hist_txt = history_to_text(body.history)
+
+        best_count = len(raw_best)
+        results_best = results[:best_count]
+        results_similar = results[best_count:]
+
+        products_best_txt = (
+            results_to_bullets(results_best, limit=min(len(results_best), 3))
+            if results_best
+            else "(vacío)"
+        )
+
         limit = min(max(body.top_k, 6), 12)
-        products_txt = results_to_bullets(results, limit=limit)
-        # web_items = await web_search_products(body.query, k=3, lang=target_lang)
-        # web_txt = web_results_to_bullets(web_items)
+        products_similar_txt = (
+            results_to_bullets(results_similar, limit=limit)
+            if results_similar
+            else "(vacío)"
+        )
 
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT),
+                (
+                    "human",
+                    "Idioma de respuesta: {target_language}\n\n"
+                    "Historial:\n{history}\n\n"
+                    "Query:\n{query}\n\n"
+                    "Catálogo interno (mejor coincidencia):\n{products_best}\n\n"
+                    "Catálogo interno (similares):\n{products_similar}\n\n"
+                    "Resultados encontrados en internet (si están vacíos, ignora esta sección):\n{web_products}\n\n"
+                    "Reglas de salida (importante):\n"
+                    "- Devuelve SOLO la respuesta final para el usuario.\n"
+                    "- NO copies ni pegues literalmente listas, URLs, ni bloques completos de los resultados.\n"
+                    "- Usa esos resultados solo como contexto para escoger 3-5 recomendaciones.\n"
+                    "- Si 'Catálogo interno (mejor coincidencia)' está vacío, dilo explícitamente y apóyate en 'similares' y/o 'web'.\n"
+                    "- Para cada recomendación: nombre del producto + 1 frase corta del porqué encaja.\n\n"
+                    "Genera la respuesta.",
+                ),
+            ]
+        )
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT),
-            ("human",
-            "Idioma de respuesta: {target_language}\n\n"
-            "Historial:\n{history}\n\n"
-            "Query:\n{query}\n\n"
-            "Resultados disponibles (no inventes nada fuera de esto):\n{products}\n\n"
-            "Resultados encontrados en internet (si están vacíos, ignora esta sección):\n{web_products}\n\n"
-            "Reglas de salida (importante):\n"
-            "- Devuelve SOLO la respuesta final para el usuario.\n"
-            "- NO copies ni pegues literalmente listas, URLs, ni bloques completos de 'Resultados disponibles' o 'Resultados en internet'.\n"
-            "- Usa esos resultados solo como contexto para escoger 3-5 recomendaciones.\n"
-            "- Para cada recomendación: nombre del producto + 1 frase corta del porqué encaja.\n\n"
-            "Genera la respuesta."
-            )
-        ])
-
-        
         chain = prompt | llm
-        llm_out = await chain.ainvoke({
-            "target_language": target_lang,
-            "history": hist_txt or "(vacío)",
-            "query": body.query,
-            "search_query": search_query,
-            "products": products_txt or "(sin resultados)",
-            "web_products": web_txt or "(sin resultados web)",
-        })
+        llm_out = await chain.ainvoke(
+            {
+                "target_language": target_lang,
+                "history": hist_txt or "(vacío)",
+                "query": body.query,
+                "search_query": search_query,
+                "products_best": products_best_txt,
+                "products_similar": products_similar_txt,
+                "web_products": web_txt or "(sin resultados web)",
+            }
+        )
 
         answer = getattr(llm_out, "content", None) or str(llm_out)
-        
-        logger.info("Chat response generated", extra={"endpoint": "/chat", "used_context": used_ctx, "results_count": len(results),"web_results_count": len(web_results),})
+
+        logger.info(
+            "Chat response generated",
+            extra={
+                "endpoint": "/chat",
+                "used_context": used_ctx,
+                "results_count": len(results),
+                "web_results_count": len(web_results),
+            },
+        )
 
         return ChatResponse(
             answer=answer.strip(),

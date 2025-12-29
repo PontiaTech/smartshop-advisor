@@ -246,7 +246,7 @@ def keyword_match_score(query: str, product_text: str) -> float:
     return hits / len(kws)
   
     
-def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_text: float = 0.4, imp_image: float = 0.5, imp_cat: float = 0.05) -> dict:
+def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_text: float = 0.45, imp_image: float = 0.5, imp_cat: float = 0.05) -> dict:
     """
         Búsqueda completa:
         1) Clasifica la intención (tipo de producto).
@@ -269,6 +269,8 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
 
     scored: List[Dict[str, Any]] = []
     clip_available = 0
+    
+    query_kws = extract_keywords(query)
 
     for c in candidates:
         img_url = c.get("image")
@@ -320,6 +322,33 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
 
         # Mezcla final (keyword aporta un empujón pequeño pero útil)
         c["score"] = 0.85 * base + 0.15 * kw
+        
+        fam = _norm(c.get("product_family", ""))
+        desc = (c.get("description") or "").strip()
+        name = (c.get("product_name") or "").strip()
+
+        quality_penalty = 0.0
+
+        # family vacía o muy poco informativa
+        if not fam or fam in {"", "n/a", "na", "none"}:
+            quality_penalty += 0.05
+
+        # descripción demasiado corta (suele ser mala señal)
+        if len(desc) < 25:
+            quality_penalty += 0.05
+
+        # descripción casi igual al nombre (ingesta repetida / poco informativa)
+        if _norm(desc) and _norm(name) and _norm(desc)[:60] == _norm(name)[:60]:
+            quality_penalty += 0.05
+
+        # si keyword match es bajo, penaliza extra (evita "botas" en "vaqueros negros")
+        if kw < 0.34:
+            quality_penalty += 0.08
+        elif kw < 0.50:
+            quality_penalty += 0.04
+
+        c["quality_penalty"] = quality_penalty
+        c["score"] = max(0.0, float(c["score"]) - quality_penalty)
 
         scored.append(c)
 
@@ -337,6 +366,25 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
 
     # Ordenamos por score final descendente
     scored.sort(key=lambda x: float(x.get("score", 0.0) or 0.0), reverse=True)
+    
+    base_thr = 0.68
+
+    # si la query trae señal clara, sube el umbral (más precisión)
+    if len(query_kws) >= 3:
+        base_thr += 0.05
+
+    # si la query es corta tipo "y de deporte?", baja para no quedarte sin nada
+    if len(query.split()) <= 3:
+        base_thr -= 0.05
+
+    # si hay un ganador claro, el resto suele ser ruido -> sube el listón
+    if len(scored) >= 3:
+        gap = float(scored[0].get("score", 0.0)) - float(scored[2].get("score", 0.0))
+        if gap > 0.12:
+            base_thr += 0.04
+
+    # clamp seguro
+    base_thr = min(max(base_thr, 0.55), 0.80)
 
     # Filtro opcional para evitar basura (mantengo tu lógica)
     filtered = [x for x in scored if float(x.get("score", 0.0) or 0.0) >= 0.6]

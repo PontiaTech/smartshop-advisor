@@ -61,13 +61,14 @@ API_URL = os.getenv("API_URL", "http://api-smartshopadvisor:8000/chat")
 
 def call_chat_api(message: str, chat_history: list, api_history: list, top_k: int, target_language: str, show_details: bool):
     if not message or not message.strip():
+        # chat_history, api_history, txt, status, cards_html, links_md
         return chat_history, api_history, gr.update(value=""), "Escribe una consulta primero.", "", ""
 
     user_msg = message.strip()
 
     payload = {
         "query": user_msg,
-        "history": api_history or [],
+        "history": api_history or [],  # <- memoria para la API (sender/content)
         "top_k": int(top_k),
         "target_language": (target_language or "es").strip().lower(),
     }
@@ -103,75 +104,61 @@ def call_chat_api(message: str, chat_history: list, api_history: list, top_k: in
 
     clean_answer = answer if answer else "No he encontrado recomendaciones claras para esa consulta."
 
+    # Intento de imágenes dentro del chat (markdown)
+    top_n = min(len(results), 6)
+    products_md = ""
+
+    if top_n > 0:
+        lines = []
+        lines.append("\n---\n")
+        lines.append("Productos recomendados\n")
+
+        for i, r in enumerate(results[:top_n], start=1):
+            name = (r.get("product_name") or f"Producto {i}").strip()
+            desc = (r.get("description") or "").strip()
+            url = (r.get("url") or "").strip()
+            img = (r.get("image") or "").strip()
+
+            lines.append(f"- {i}. {name}")
+            if desc:
+                lines.append(f"  - {desc}")
+
+            # Imagen inline (si Gradio la renderiza, genial; si no, no rompe nada)
+            if img:
+                lines.append(f"  - ![]({img})")
+
+            if url:
+                lines.append(f"  - Ver producto: {url}")
+
+        products_md = "\n".join(lines).strip()
+
     display_answer = clean_answer
+    if products_md:
+        display_answer = (display_answer + "\n\n" + products_md).strip()
+
     if show_details:
         dbg = [
+            "\n---\n",
             "Debug",
             f"- results: {len(results)}",
             f"- web_results: {len(web_results)}",
+            f"- top_k: {top_k}",
         ]
-        display_answer = (display_answer + "\n\n" + "\n".join(dbg)).strip()
+        display_answer = (display_answer + "\n" + "\n".join(dbg)).strip()
 
-    # Chat en formato messages (lo que pide tu Gradio)
+    # Chatbot en formato messages (role/content)
     chat_history = chat_history or []
     chat_history.append({"role": "user", "content": user_msg})
     chat_history.append({"role": "assistant", "content": display_answer})
 
-    # Memoria API (sender/content)
+    # Memoria para la API: SOLO respuesta limpia (sin bloque de imágenes)
     api_history = api_history or []
     api_history.append({"sender": "user", "content": user_msg})
     api_history.append({"sender": "assistant", "content": clean_answer})
 
-    # Cards HTML
-    top_n = min(len(results), 6)
-    cards = []
-    links_txt = ""
+    # Opción 1: nada abajo
+    return chat_history, api_history, gr.update(value=""), "OK", "", ""
 
-    for i, r in enumerate(results[:top_n], start=1):
-        name = (r.get("product_name") or f"Producto {i}").strip()
-        url = (r.get("url") or "").strip()
-        img = (r.get("image") or "").strip()
-        desc = (r.get("description") or "").strip()
-
-        if url:
-            links_txt += f"- [{i}. {name}]({url})\n"
-
-        img_block = (
-            f'<img src="{img}" alt="{name}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid #eee;" />'
-            if img else
-            '<div style="width:100%;height:170px;background:#f2f2f2;border-radius:12px;border:1px solid #eee;"></div>'
-        )
-
-        desc_html = (
-            f'<div style="color:#444;font-size:13px;line-height:1.25;margin-top:6px;max-height:50px;overflow:hidden;">{desc}</div>'
-            if desc else
-            '<div style="color:#666;font-size:13px;margin-top:6px;">Sin descripción.</div>'
-        )
-
-        btn_html = (
-            f'<a href="{url}" target="_blank" style="display:inline-block;margin-top:10px;padding:8px 10px;border-radius:10px;text-decoration:none;border:1px solid #ddd;background:#fff;">Ver producto</a>'
-            if url else
-            ""
-        )
-
-        cards.append(f"""
-        <div style="border:1px solid #eee;border-radius:16px;padding:10px;background:white;">
-          {img_block}
-          <div style="margin-top:10px;font-weight:600;font-size:14px;">{i}. {name}</div>
-          {desc_html}
-          {btn_html}
-        </div>
-        """)
-
-    cards_html = ""
-    if cards:
-        cards_html = f"""
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
-          {''.join(cards)}
-        </div>
-        """
-
-    return chat_history, api_history, gr.update(value=""), "OK", cards_html, links_txt
 
 
 

@@ -16,48 +16,71 @@ def history_to_text(history: Optional[List[ChatMessage]]) -> str:
 
 
 def results_to_bullets(results: List[CompleteSearchProduct], limit: int = 8) -> str:
+    """
+    Contexto para el LLM, en formato controlado.
+    Mantiene URL e Image porque tu system prompt las necesita para imprimir.
+    Evita el estilo 'dump' (name=...|url=...) que el modelo tiende a copiar.
+    """
     if not results:
         return ""
 
-    bullets = []
+    blocks = []
     for i, p in enumerate(results[:limit], start=1):
-        name = (p.product_name or "").strip()
+        name = (p.product_name or "").strip() or "No disponible"
+        desc = (p.description or "").replace("\n", " ").strip() or "No disponible"
         fam = (p.product_family or "").strip()
         src = (p.source or "").strip()
-        url = (p.url or "").strip()
-        img = (p.image or "").strip()
+        url = (p.url or "").strip() or "No disponible"
+        img = (p.image or "").strip() or "No disponible"
+        score = float(getattr(p, "score", 0.0) or 0.0)
 
-        desc = (p.description or "").replace("\n", " ").strip()
-        if len(desc) > 180:
-            desc = desc[:177] + "..."
+        # recorte para evitar tochos
+        if len(desc) > 160:
+            desc = desc[:157].rstrip() + "..."
 
-        # Nota: p.score ya viene como float (de clip_score)
-        bullets.append(
-            f"{i}) name={name} | family={fam} | score={p.score:.4f} | source={src} | url={url} | image={img} | desc={desc}"
+        # bloque compacto, “listo para usar” pero sin parecer un log
+        extra = []
+        if fam:
+            extra.append(f"Familia: {fam}")
+        if src:
+            extra.append(f"Fuente: {src}")
+        extra_txt = (" | " + " - ".join(extra)) if extra else ""
+
+        blocks.append(
+            f"[{i}] score={score:.3f}{extra_txt}\n"
+            f"Nombre: {name}\n"
+            f"Descripción: {desc}\n"
+            f"Imagen: {img}\n"
+            f"URL: {url}"
         )
 
-    return "\n".join(bullets)
+    return "\n\n".join(blocks).strip()
 
 
-def web_results_to_bullets(items: list[dict]) -> str:
-    # lines = []
-    # for i, it in enumerate(items, 1):
-    #     lines.append(
-    #         f"- [{i}] {it.get('title','')}\n"
-    #         f"  - source: {it.get('source','')}\n"
-    #         f"  - snippet: {it.get('snippet','')}\n"
-    #         f"  - url: {it.get('url','')}"
-    #     )
-    # return "\n".join(lines)
-    lines = []
-    for i, it in enumerate(items, 1):
-        title = it.get("title") or it.get("product_name") or ""
-        snippet = it.get("snippet") or it.get("description") or ""
+def web_results_to_bullets(items: list[dict], limit: int = 3) -> str:
+    """
+    Contexto web para el LLM en formato controlado (sin dump).
+    """
+    if not items:
+        return ""
 
-        lines.append(
-            f"- [{i}] {title}\n"
-            f"  - source: {it.get('source','')}\n"
-            f"  - snippet: {snippet}\n"
-            f"  - url: {it.get('url','')}"
+    blocks = []
+    for i, it in enumerate(items[:limit], start=1):
+        title = (it.get("title") or it.get("product_name") or "").strip() or "No disponible"
+        source = (it.get("source") or "").strip()
+        snippet = (it.get("snippet") or it.get("description") or "").replace("\n", " ").strip() or "No disponible"
+        url = (it.get("url") or "").strip() or "No disponible"
+
+        if len(snippet) > 160:
+            snippet = snippet[:157].rstrip() + "..."
+
+        src_txt = f"Fuente: {source}\n" if source else ""
+        blocks.append(
+            f"[{i}]\n"
+            f"Nombre: {title}\n"
+            f"{src_txt}"
+            f"Descripción/Motivo: {snippet}\n"
+            f"URL: {url}"
         )
-    return "\n".join(lines)
+
+    return "\n\n".join(blocks).strip()
