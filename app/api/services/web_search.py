@@ -5,6 +5,8 @@ from sentence_transformers import SentenceTransformer
 from chromadb import HttpClient
 import uuid
 import logging
+
+from urllib.parse import quote
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,6 +30,18 @@ if not logger.handlers:
 # -------------------------
 # Helpers
 # -------------------------
+
+
+def _safe_url(u: str) -> str:
+    """
+    Hace la URL clicable:
+    - Escapa espacios y caracteres raros.
+    - Mantiene intactos : / ? & = y demás separadores.
+    """
+    u = _safe_str(u)
+    if not u:
+        return ""
+    return quote(u, safe=":/?&=#%+-_.~")
 
 def _add_api_key(url: str, api_key: str) -> str:
     u = urlparse(url)
@@ -80,9 +94,20 @@ def pick_best(items: list[dict], k: int = 3) -> list[dict]:
 
 def _as_vector_record(base: dict, description: str) -> dict:
     title = _safe_str(base.get("title"))
-    url = _safe_str(base.get("url"))
+    # url = _safe_str(base.get("url"))
+    # thumbnail = _safe_str(base.get("thumbnail"))
+    raw_url = _safe_str(base.get("product_link") or base.get("url"))
+    
+    url = _safe_url(raw_url)
+
     thumbnail = _safe_str(base.get("thumbnail"))
+    thumbnail = _safe_url(thumbnail)
     source = _safe_str(base.get("source"))
+    
+    logger.info(
+    "as_vector_record urls",
+    extra={"raw_url": raw_url, "safe_url": url, "raw_thumb": base.get("thumbnail"), "safe_thumb": thumbnail}
+    )
 
     color = _safe_str(base.get("color")) or _guess_color_from_title(title)
     family = _safe_str(base.get("product_family"))  # normalmente vacío en SerpAPI shopping
@@ -155,6 +180,9 @@ async def web_search_products(
 
         shopping = data.get("shopping_results") or []
         logger.info("SerpAPI shopping_results=%d", len(shopping))
+        
+        if shopping:
+            logger.info("shopping[0] keys", extra={"keys": list(shopping[0].keys())})
 
         if not shopping:
             logger.warning("No shopping_results for query=%r", web_query)
@@ -196,7 +224,7 @@ async def web_search_products(
         skipped_missing = 0
 
         for it in shopping[:scan_limit]:
-            product_url = it.get("link") or it.get("product_link") or ""
+            product_url = it.get("product_link") or it.get("link") or it.get("url") or ""
             title = it.get("title") or ""
             if not title or not product_url:
                 skipped_missing += 1
@@ -222,6 +250,7 @@ async def web_search_products(
             pool.append({
                 "title": title,
                 "url": product_url,
+                "product_link": it.get("product_link") or it.get("link") or "",
                 "source": it.get("source") or domain,
                 "price": it.get("price"),
                 "extracted_price": it.get("extracted_price"),
@@ -296,4 +325,7 @@ async def web_search_products(
             enriched.append(_as_vector_record(base, description=desc))
 
         logger.info("web_search_products done -> returning %d items", len(enriched))
+        if enriched:
+            logger.info("web_search sample", extra={"sample": enriched[0]})
+
         return enriched

@@ -104,37 +104,9 @@ def call_chat_api(message: str, chat_history: list, api_history: list, top_k: in
 
     clean_answer = answer if answer else "No he encontrado recomendaciones claras para esa consulta."
 
-    # Intento de imágenes dentro del chat (markdown)
-    top_n = min(len(results), 6)
-    products_md = ""
-
-    if top_n > 0:
-        lines = []
-        lines.append("\n---\n")
-        lines.append("Productos recomendados\n")
-
-        for i, r in enumerate(results[:top_n], start=1):
-            name = (r.get("product_name") or f"Producto {i}").strip()
-            desc = (r.get("description") or "").strip()
-            url = (r.get("url") or "").strip()
-            img = (r.get("image") or "").strip()
-
-            lines.append(f"- {i}. {name}")
-            if desc:
-                lines.append(f"  - {desc}")
-
-            # Imagen inline (si Gradio la renderiza, genial; si no, no rompe nada)
-            if img:
-                lines.append(f"  - ![]({img})")
-
-            if url:
-                lines.append(f"  - Ver producto: {url}")
-
-        products_md = "\n".join(lines).strip()
-
+    # IMPORTANT: NO añadimos lista extra de productos en la UI (evita duplicados).
+    # Dejamos que el LLM controle el formato completo.
     display_answer = clean_answer
-    if products_md:
-        display_answer = (display_answer + "\n\n" + products_md).strip()
 
     if show_details:
         dbg = [
@@ -151,18 +123,13 @@ def call_chat_api(message: str, chat_history: list, api_history: list, top_k: in
     chat_history.append({"role": "user", "content": user_msg})
     chat_history.append({"role": "assistant", "content": display_answer})
 
-    # Memoria para la API: SOLO respuesta limpia (sin bloque de imágenes)
+    # Memoria para la API: SOLO respuesta limpia
     api_history = api_history or []
     api_history.append({"sender": "user", "content": user_msg})
     api_history.append({"sender": "assistant", "content": clean_answer})
 
     # Opción 1: nada abajo
     return chat_history, api_history, gr.update(value=""), "OK", "", ""
-
-
-
-
-
 
 
 def reset_chat():
@@ -173,7 +140,6 @@ def reset_chat():
 with gr.Blocks(title="SmartShop Advisor Chatbot") as demo:
     gr.Markdown("# SmartShop Advisor\n")
 
-    # Estado para la memoria real del chatbot (la que se manda a la API)
     api_history = gr.State([])
 
     with gr.Row():
@@ -190,7 +156,6 @@ with gr.Blocks(title="SmartShop Advisor Chatbot") as demo:
                 send = gr.Button("Enviar", variant="primary")
                 clear = gr.Button("Nueva conversación")
 
-            # gallery = gr.Gallery(label="Productos recomendados", columns=2, height=320)
             cards_html = gr.HTML(label="Recomendaciones")
             links_md = gr.Markdown()
 

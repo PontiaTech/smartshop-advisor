@@ -70,6 +70,7 @@ def web_results_to_bullets(items: list[dict], limit: int = 3) -> str:
         source = (it.get("source") or "").strip()
         snippet = (it.get("snippet") or it.get("description") or "").replace("\n", " ").strip() or "No disponible"
         url = (it.get("url") or "").strip() or "No disponible"
+        image = it.get("image") or it.get("thumbnail") or "No disponible"
 
         if len(snippet) > 160:
             snippet = snippet[:157].rstrip() + "..."
@@ -80,6 +81,7 @@ def web_results_to_bullets(items: list[dict], limit: int = 3) -> str:
             f"Nombre: {title}\n"
             f"{src_txt}"
             f"Descripción/Motivo: {snippet}\n"
+            f"Imagen: {image}\n"
             f"URL: {url}"
         )
 

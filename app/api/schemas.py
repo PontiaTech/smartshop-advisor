@@ -97,9 +97,10 @@ class ChatRequest(BaseModel):
     
 class WebSearchProduct(BaseModel):
     title: str
-    url: HttpUrl
+    url: str
     snippet: Optional[str] = None
     source: Optional[str] = None
+    image: Optional[str] = None
     
 
 class ChatResponse(BaseModel):

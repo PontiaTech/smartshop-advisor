@@ -13,7 +13,7 @@ from app.database.ingest_to_chroma_robust import fix_mojibake
 
 load_dotenv()
 
-CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
+CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "products_all")
 
@@ -76,11 +76,19 @@ FAMILY_SYNONYMS = {
 }
 
 
-client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
-collection = client.get_collection(COLLECTION_NAME)
+# client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+# collection = client.get_collection(COLLECTION_NAME)
 
 text_encoder = SentenceTransformer(TEXT_EMB_MODEL)
 clip_encoder = SentenceTransformer(CLIP_MODEL)
+
+_client = None
+
+def get_chroma_collection():
+    global _client
+    if _client is None:
+        _client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+    return _client.get_or_create_collection(name=COLLECTION_NAME)
 
 
 def _norm(s: str) -> str:
@@ -107,6 +115,8 @@ def basic_search(query: str, n_results: int = 10) -> List[Dict[str, Any]]:
         [query],
         convert_to_numpy=True,
     ).tolist()
+    
+    collection = get_chroma_collection()
 
     results = collection.query(
         query_embeddings=query_emb,
