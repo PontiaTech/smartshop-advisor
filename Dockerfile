@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Descargar modelo de spaCy
 RUN python -m spacy download en_core_web_sm
+RUN python -m spacy download es_core_news_sm
 
 
 # Copiamos contenido de la carpeta app al contenedor

@@ -194,4 +194,4 @@ with gr.Blocks(title="SmartShop Advisor Chatbot") as demo:
         outputs=[chatbox, api_history, txt, status, cards_html, links_md],
     )
 
-demo.launch(server_name="0.0.0.0", server_port=7860, debug=True)
+demo.launch(server_name="0.0.0.0", server_port=7860, debug=True, show_error=True)

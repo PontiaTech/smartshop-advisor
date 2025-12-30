@@ -20,7 +20,7 @@ from app.api.utils.chat_utils import history_to_text, results_to_bullets, web_re
 from app.api.services.web_search import web_search_products
 from app.api.ai.llms import get_llm
 # from app.api.utils.search_context_improved import build_search_query, sanitize_web_query
-from app.api.utils.search_context import build_search_query, sanitize_web_query, sanitize_rag_query
+from app.api.utils.s_context import build_search_query, sanitize_web_query, sanitize_rag_query
 # from langchain.prompts import ChatPromptTemplate
 from langchain_core.prompts import ChatPromptTemplate
 from app.api.ai.system_prompts import CHATBOT_SYSTEM_PROMPT, FULLY_DETAILED_CHATBOT_SYSTEM_PROMPT
