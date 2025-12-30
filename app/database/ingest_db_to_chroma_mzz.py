@@ -195,7 +195,7 @@ def ingest_chroma_zalando_mango_zara():
         documents.append(text)
 
         meta = row.to_dict()
-        meta["id"] = doc_id  # por si luego quieres recuperar
+        meta["id"] = doc_id
         metadatas.append(meta)
 
     embedder = SentenceTransformer(EMB_MODEL)

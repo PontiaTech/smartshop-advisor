@@ -74,6 +74,7 @@ class CompleteSearchProduct(BaseModel):
     url: Optional[str] = None
     image: Optional[str] = None
     score: float
+    color: Optional[str] = None
 
 
 class CompleteSearchResponse(BaseModel):
@@ -96,9 +97,10 @@ class ChatRequest(BaseModel):
     
 class WebSearchProduct(BaseModel):
     title: str
-    url: HttpUrl
+    url: str
     snippet: Optional[str] = None
     source: Optional[str] = None
+    image: Optional[str] = None
     
 
 class ChatResponse(BaseModel):
