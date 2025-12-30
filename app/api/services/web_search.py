@@ -121,6 +121,12 @@ def _as_vector_record(base: dict, description: str) -> dict:
         "color": color,
         "source": source,
     }
+    
+def _safe_get(d, k):
+    try:
+        return (d.get(k) or "")
+    except Exception:
+        return ""
 
 
 # -------------------------
@@ -159,6 +165,17 @@ async def web_search_products(
         "no_cache": "false",
         "output": "json",
     }
+    
+    logger.info(
+        "WEBSEARCH_IN q=%r | web_query=%r | k=%s | lang=%r | hl=%r gl=%r location=%r",
+        q,
+        web_query,
+        k,
+        lang,
+        hl,
+        gl,
+        location,
+    )
 
     logger.info(
         "web_search_products: q=%r web_query=%r k=%d pool_size=%d hl=%s gl=%s location=%r",
@@ -327,5 +344,13 @@ async def web_search_products(
         logger.info("web_search_products done -> returning %d items", len(enriched))
         if enriched:
             logger.info("web_search sample", extra={"sample": enriched[0]})
+            
+        logger.info(
+            "WEBSEARCH_OUT shopping_results=%d | pool_size=%d | selected=%d | titles=%s",
+            len(shopping or []),
+            len(pool or []),
+            len(best or []),
+            [_safe_get(x, "title")[:60] for x in (best or [])[:3]],
+        )
 
         return enriched

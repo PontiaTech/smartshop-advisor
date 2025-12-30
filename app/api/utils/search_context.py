@@ -55,21 +55,71 @@ def _norm(s: str) -> str:
 def _tokenize(s: str) -> list[str]:
     return re.findall(r"[a-zA-ZÀ-ÿ0-9]+", _norm(s))
 
+def _clean_user_text(s: str) -> str:
+    s = (s or "").strip()
+    s = re.sub(r"\s+", " ", s)
+    return s
+
 def history_last_user_query(history: list[ChatMessage] | None) -> str:
     if not history:
         return ""
+
     for m in reversed(history):
-        if (m.sender or "").lower() == "user" and (m.content or "").strip():
-            return m.content.strip()
+        sender = (getattr(m, "sender", "") or "").lower()
+        content: Any = getattr(m, "content", None)
+
+        if sender != "user":
+            continue
+
+        # Solo aceptamos strings
+        if isinstance(content, str):
+            txt = _clean_user_text(content)
+            if txt:
+                return txt
+
+        # Si te llega algo raro, lo ignoras para no contaminar
+        # (dict, ChatMessage, etc.)
+        continue
+
     return ""
 
 def history_last_user_image_url(history: list[ChatMessage] | None) -> str:
     if not history:
         return ""
+
     for m in reversed(history):
-        if (m.sender or "").lower() == "user" and m.image_url:
-            return str(m.image_url)
+        sender = (getattr(m, "sender", "") or "").lower()
+        image_url = getattr(m, "image_url", None)
+
+        if sender == "user" and image_url:
+            return str(image_url).strip()
+
     return ""
+
+def sanitize_web_query(q: str) -> str:
+    q = (q or "").strip()
+    # Si parece un dump de ChatMessage / assistant, quédate con lo último tras un salto
+    if "sender='assistant'" in q or 'sender="assistant"' in q:
+        # intenta extraer solo lo que va después de la última línea "Query:" o similar
+        # pero como fallback simple:
+        q = re.sub(r"sender=['\"]assistant['\"].*", "", q).strip()
+    # recorta por seguridad
+    return q[:200]
+
+def sanitize_rag_query(q: str) -> str:
+    q = (q or "").strip()
+    q = re.sub(r"\s+", " ", q)
+
+    # corta dumps de objetos tipo ChatMessage o logs
+    if "sender='assistant'" in q or 'sender="assistant"' in q:
+        q = re.sub(r"sender=['\"]assistant['\"].*", "", q).strip()
+
+    # quita markdown pesado y urls, pero sin recortar tan agresivo
+    q = re.sub(r"!\[[^\]]*\]\([^)]+\)", " ", q)
+    q = re.sub(r"https?://\S+", " ", q)
+    q = re.sub(r"\s+", " ", q).strip()
+
+    return q[:500]
 
 def has_product_subject(text: str) -> bool:
     """
