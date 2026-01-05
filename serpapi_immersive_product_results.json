@@ -1,0 +1,512 @@
+{
+  "thumbnails": [
+    "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcRwgMaVcc7x-yHObZ4UhOfzseSicTj5LOao1hYPqlsMOmAc13YK8YfNa4EXCJMpuckaCX0YQjQjPqPhlXQmANkz3UcwW3GRo-tqN-TTd5or_2DwlLZ_257tFN0",
+    "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcTjPGEwW-uz2e7kA5jP5sXHUuGSzsSt3xAYNhRJljAdJftKsn6hTrfSmBEy5FCKIy4jCFoEQeJah6SZYUoR1sXhHki4w-r0nL8k5ueBUbq2eJw7W_huO5rdR_I",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcRPa-Ek233bwOa8z_8TiJg1Bf8WanHdhe-WjYEFEMAfHnf_bp83_fdtmVbOxjkF-YQ4NVxuZluCm5yDizMICB5Dsrh2GTuYkFSnyAXdh8DnlZDvPwiNXQO3Ng",
+    "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSZ8g3jyEhk1_mYwV0pI1_O4K0nGTwshxGYMcsT1ZoAOcb9YYkgVX4MyZlVDC0CzF9M6lKb8s90MK7yH4Bl7ABJ2HbVeDEQTrsgZwBA-DIWGlSeVS-FtRMpmA",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcQfyjLCP66UGbOqQBhJlVr3_iXmi6xTaQtCj6g7NYNNlAprRgWRaYvrucOOzQria2Y9Vz61BsSfuL1znC9W1YMjuGAvAZoFim1HI2UTM14xBBxhaOKlb3an",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcS15S1SeHvLre0Psyr2ii8EN8BUKk0IW98h_jLnTQCkzMiKCvxl5FRC0Cp0QbHvOA2hI-j_ejoeeWWW16ouRYtGINJikSYAI3rBJME1aDTKKIqUta95Lnw17Q",
+    "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSPHcgJmL2QvW04_axnCcwdqP73rrjtrOX3ZnX3kqDbVBLHgRrdMKE05L0CC26SU00IX7VN8wYVngi9WcFyGWaGGxEb_0-IYJ4uUmyyj8oQYpTM0OG09Qkl2A",
+    "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcQTdR9wRWY7WYrVbiuPUC_R3nLFTDp7xKahG9a1Vdky3xD-laaswyKV2NGnUsRlTG3KTy9FOn5MMmEiSYOoShKxcM03Yo2jVXO7wz9vJGmcLiioA2t5nkMm",
+    "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcQNcwK2mV6Ve-vbfzg8iUlhOT2PNTfq32ddAFPGmAW5Pl75gND267EZ6JDGLJFK2K6AOOi17WwOakGmf7mpv_6ayK-69N7fxe7PnF_qnlp9KOC9_OSt5Xbn",
+    "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcT8sqA1fV3RGsTVbOIimPlqadvHfY3h0YQZB2hYDn8LTMb2Rhk4dsqdq0RtvQ5L7fgXX9f1hofx5fWSJ0LzstF9UxUTJaerMzCcCAVh2H7vRt7a3IvLHsI7",
+    "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSKo4hM4wrC2t60BveRd6s4wlquxmQYornERcUsmP4AvOXV5B00Rb48aBFGNPlxwzBwkCHsXpaPxPWrcbXdHdui9CflkwYHZMsFCGK7EKa3jIbdUeAKkP7Q",
+    "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcRdMSqa626W6KFNVjRvAInctPuXc_AjWooMAbaYITDSSxsCvzGTXf2VIk-9v_vulKvgVMQycwNkoNRYqbDNHBXtuE76O_SJhaq2uYsiuNjBYuogI11bf79SxQ",
+    "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcTVgxlFC2MYGOVhZZeBO-GfvOSVXXAb6aIWqBJG72T7RGI6jJ4zq6iLy9Nh1JQwHtuFdVfVPkuTQEWTSLgNT-uYHsTr51ilrZxX7U3aIhOSRM65URVsQ1NBBQ",
+    "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcQFILy8c8u9_Yxsrydnn0NzKTidxuZlLpVY5EqvbjM7yP1eDcYDJ9yVA5WqdhCnM7ytzSxx8mFpDU9_CDx-X1uwoi7FOVCq1Aj9FlANmKx7lTxE5MD8-l8gAw"
+  ],
+  "title": "UGG Women's Lowmel",
+  "brand": "UGG",
+  "reviews": 1693,
+  "rating": 4.7,
+  "price_range": "$139-$150",
+  "stores": [
+    {
+      "name": "Journeys",
+      "logo": "https://encrypted-tbn3.gstatic.com/faviconV2?url=https://www.journeys.com&client=SHOPPING&size=32&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "link": "https://www.journeys.com/product/womens-ugg-lowmel-sneaker-black-582197?srsltid=AfmBOooMDKN4rfsozDLfqtE1oESATohBgA8DIK2Pym66yTa_KORo41Uh5yY",
+      "title": "Womens UGG Lowmel Sneaker - Black - Size 6",
+      "rating": 4.7,
+      "reviews": 57791,
+      "payment_methods": "PayPal, Google Pay, Afterpay & more accepted",
+      "tag": "Nearby",
+      "details_and_offers": [
+        "In stock online and in store",
+        "Free delivery between Dec 18 – 26",
+        "365-day returns"
+      ],
+      "price": "$149.99",
+      "extracted_price": 149.99,
+      "shipping": "Free",
+      "total": "$149.99",
+      "extracted_total": 149.99
+    },
+    {
+      "name": "ugg.com",
+      "logo": "https://encrypted-tbn3.gstatic.com/faviconV2?url=https://www.ugg.com&client=SHOPPING&size=32&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "link": "https://www.ugg.com/women-sale-sneakers-flats/lowmel/198605261855.html",
+      "title": "Women's Lowmel",
+      "rating": 4.6,
+      "reviews": 491,
+      "payment_methods": "PayPal, Afterpay accepted",
+      "tag": "Best price",
+      "details_and_offers": [
+        "In stock online",
+        "Free delivery",
+        "30-day returns"
+      ],
+      "discount": "Usually $150",
+      "price": "$104.99",
+      "extracted_price": 104.99,
+      "original_price": "$104.99",
+      "extracted_original_price": 104.99,
+      "shipping": "Free",
+      "total": "$104.99",
+      "extracted_total": 104.99
+    },
+    {
+      "name": "Nordstrom",
+      "logo": "https://encrypted-tbn1.gstatic.com/faviconV2?url=https://www.nordstrom.com&client=SHOPPING&size=32&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "link": "https://www.nordstrom.com/s/ugg-lowmel-sneaker-women/7475174?color=BLACK&size=10&country=US&currency=USD&utm_source=google&utm_medium=organic&utm_campaign=seo_shopping&utm_channel=low_nd_seo_shopping&srsltid=AfmBOooWDrnXlN3tyrO0WiB-b-eoeEzw8ko66YAK-opUT0KI_7d9j1q7cP8",
+      "title": "UGG Lowmel Sneaker in Black at Nordstrom, Size 10",
+      "rating": 4.8,
+      "reviews": 854,
+      "payment_methods": "PayPal, Google Pay, Afterpay accepted",
+      "details_and_offers": [
+        "In stock online",
+        "Free delivery between Dec 22 – 24",
+        "Free lifetime returns"
+      ],
+      "price": "$149.95",
+      "extracted_price": 149.95,
+      "shipping": "Free",
+      "total": "$149.95",
+      "extracted_total": 149.95
+    },
+    {
+      "name": "Zappos.com",
+      "logo": "https://encrypted-tbn3.gstatic.com/faviconV2?url=https://www.zappos.com&client=SHOPPING&size=32&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "link": "https://www.zappos.com/product/9884511/color/3?utm_medium=fpa&utm_campaign=free_listings",
+      "title": "UGG Lowmel Women's Shoes Black : 7 B - Medium, Suede/Textile",
+      "rating": 4.8,
+      "reviews": 169,
+      "payment_methods": "PayPal, Amazon Pay, Afterpay accepted",
+      "details_and_offers": [
+        "In stock online",
+        "Free delivery by Fri",
+        "Free 365-day returns"
+      ],
+      "price": "$149.95",
+      "extracted_price": 149.95,
+      "shipping": "Free",
+      "total": "$149.95",
+      "extracted_total": 149.95
+    },
+    {
+      "name": "Foot Locker",
+      "logo": "https://encrypted-tbn0.gstatic.com/faviconV2?url=https://www.footlocker.com&client=SHOPPING&size=32&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "link": "https://www.footlocker.com/product/~/44032BLK.html",
+      "title": "UGG Womens Lowmel - Shoes Black Size 10.0",
+      "rating": 4.4,
+      "reviews": 243,
+      "payment_methods": "PayPal, Google Pay, Klarna accepted",
+      "details_and_offers": [
+        "In stock online",
+        "Free delivery",
+        "45-day returns"
+      ],
+      "price": "$150.00",
+      "extracted_price": 150.0,
+      "shipping": "Free",
+      "total": "$150.00",
+      "extracted_total": 150.0
+    }
+  ],
+  "stores_next_page_token": "4rzQ6Hica15aklmSk7op1N1dITw_NzVPvVjBJ788NzVnSXF-USbr4ty8fC4AHjwOjQ",
+  "about_the_product": {
+    "title": "Lowmel Sneaker for Women",
+    "link": "https://www.ugg.com/women-casuals-moccasins/lowmel/1144032.html",
+    "displayed_link": "ugg.com",
+    "icon": "https://encrypted-tbn3.gstatic.com/faviconV2?url=https://www.ugg.com&client=SHOPPING&size=32&type=FAVICON&fallback_opts=TYPE,SIZE,URL&nfrp=2",
+    "description": "The W Lowmel of the brand UGG are sneakers of trend and fashion style, designed for lovers of fashion and comfort. These basic, yet stylish shoes are made with a textile suede upper and upper, providing exceptional softness and flexibility. Their sheepskin lining and insole add a touch of luxury and comfort. The rubber sole ensures versatility and ease of wearing. Details of these shoes include a velvet leather and textile sneaker, which adds a touch of sophistication. The W Lowmel are available in black, a chic and elegant color that suits every occasion. These shoes are ideal for fashion lovers looking for a comfortable and versatile style for their daily activities, hiking or leisure. The W Lowmel from UGG are a perfect choice for those who want to feel good inside and out, while being fashionable."
+  },
+  "ratings": [
+    {
+      "stars": 1,
+      "amount": 32
+    },
+    {
+      "stars": 2,
+      "amount": 7
+    },
+    {
+      "stars": 3,
+      "amount": 16
+    },
+    {
+      "stars": 4,
+      "amount": 389
+    },
+    {
+      "stars": 5,
+      "amount": 1249
+    }
+  ],
+  "reviews_images": [
+    "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcTchWXQdPuZY0STIf58gaQmMCS5mDuNafLci3XhKoHigjkyUTcyQLYAziBLUgbzOK_qBlMSGIP00-p1bT92MUlA66GFNdBXhg",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcS6cJuHy200rwvMgaiSlW9yWStJJmF2agtU5mhHo5XURouZCeHHug4u84mwpE8B6cx-uyQxWpTNs_yBmWl5pYXr3KZuTEwV4g",
+    "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcQJKDs6ELGxaU2SiMUbUTkNjgCoASfUTIBNqjhU9-yvKq5xDL84jcQpajOejoVZ-z2pox7X_dilunNo6j7voiQc-yGWftSD",
+    "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcSv9ERcXQf_XTDWo5ts9xm7A6CkykkqAvTNYXyeYxbhFwJwkVOo36fItt11z_V40wa2irtKmINeV33RjId28mZ4a_5-0Bnx",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcRDSQptBBg1BVVXj-ymW1vmhRHDHgS7QBmQ7jbdEmPDELpsODHw",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcTjFhWJiWMO4Xu1uRwMaAHVr94RF_ygRhY6SAP7ALdnS8klNEwq",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcQ3aX7wAxeX1TKa6zCCnQTqDqt7EJB87FZGb-3W5McXAlCueWzvs7cagr29n4JyMWX4livQUOmIhxKe-YGPty80dRz52MIn",
+    "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcTPpK7mJFsdjYstGN4iIbL5uSczLE1X3HI5Af-211pTR4DQZALk9HVifQLX3cyS8G-eTyokVBXBTLcxwwFokI9ZQBVesS44"
+  ],
+  "user_reviews": [
+    {
+      "title": "Love my UGG Trainers!",
+      "text": "Absolutely love, love, love my new UGG Trainers.\nTrue to size!\nSuper comfy due to furry insides, beautifully warm & cozy, love the colour choices, I chose Chestnut, but there's Beige & Black choices also!\nFrom when order was placed, arrived in super quick time.\nBoxed & packaged well,Trainers came already laced up, with an extra set of laces included.\nStandard sturdy, hard wearing UGG Soles!\nOne happy customer, would most definitely get myself another colour in these, thinking the black ones next!\nIf you're thinking of buying these, I definitely recommend, you won't be disappointed!",
+      "user_name": "Sloan",
+      "source": "limitedsneakers.co.uk",
+      "rating": 5,
+      "date": "11 months ago",
+      "icon": "https://lh3.googleusercontent.com/shsm/AGYqVK1D1zUit4u-fz9rqf-sGW2A1Tsw6r4PZWYqo-qgHGkhV4VJzmwznKX6-uUXF-uW-aqLwg=w40-h40-c0x00000000-cc"
+    },
+    {
+      "title": "Walking on Clouds",
+      "text": "These boots/sneakers are SO comfortable and keep your feet warm!!! Especially with the really cold temperatures in the Northeast. I wear them to work, on errands, whenever, and it's like walking on clouds. You don't realize you have them on. Received a lot of compliments and questions about where I purchased them, that I bought another pair in a different color! Highly recommend!!",
+      "user_name": "UpstateVolsFan",
+      "source": "macys.com",
+      "rating": 5,
+      "date": "9 months ago",
+      "icon": "https://lh3.googleusercontent.com/shsm/AGYqVK0P_LSm7Lu2k4rvxrD0w0UVSBbR9DrDOt9-RB3JlDE1WolWeG3ufiY926f4c50yoThU_w=w40-h40-c0x00000000-cc"
+    },
+    {
+      "title": "Traditional UGG Boot Alternative",
+      "text": "I love these shoes! They have the comfort of UGG boots but are better looking than the traditional tall and low boots. These are also a great alternative to the Prada Suede Mid-Top Sneaker. In my opinion they look very similar. Although these are expensive, they’re a fraction of the cost of the Prada shoes. I highly recommend sticking to your regular size. I’m a size 9 and purchased a 9 and they fit just fine. If you’re looking into purchasing any style UGGs, take a look at these before buying. They’re super cute, lightweight, and comfortable.",
+      "user_name": "FashionGal1",
+      "source": "nordstrom.com",
+      "rating": 5,
+      "date": "a year ago",
+      "icon": "https://lh3.googleusercontent.com/shsm/AGYqVK3cIQriTGPIH3ijy6dzvh1xsKMoCbuimc8ArRCYNS90gytG7wD22Bd5N38Kwhl3bSxV1w=w40-h40-c0x00000000-cc",
+      "images": [
+        "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcTchWXQdPuZY0STIf58gaQmMCS5mDuNafLci3XhKoHigjkyUTcyQLYAziBLUgbzOK_qBlMSGIP00-p1bT92MUlA66GFNdBXhg",
+        "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcS6cJuHy200rwvMgaiSlW9yWStJJmF2agtU5mhHo5XURouZCeHHug4u84mwpE8B6cx-uyQxWpTNs_yBmWl5pYXr3KZuTEwV4g",
+        "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcQJKDs6ELGxaU2SiMUbUTkNjgCoASfUTIBNqjhU9-yvKq5xDL84jcQpajOejoVZ-z2pox7X_dilunNo6j7voiQc-yGWftSD"
+      ]
+    },
+    {
+      "title": "Stylish but narrow",
+      "text": "These are super cute but they are much narrower than I expected. Uggs used to be way more roomy and comfortable. These are for my daughter but I tried them on because we wear the same size. I, however, will have to size up because they are very narrow and tight. Cute, stylish and well cushioned but size up if you have wider feet.",
+      "user_name": "MsRosie",
+      "source": "macys.com",
+      "rating": 4,
+      "date": "2 months ago",
+      "icon": "https://lh3.googleusercontent.com/shsm/AGYqVK0PM3Mh0D3ddKtI4ScjrjOkyHoJrEzkPcOIlgvoQAh7L1LCqJbaGQbNcnU8A06VyqQWww=w40-h40-c0x00000000-cc",
+      "images": [
+        "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcSv9ERcXQf_XTDWo5ts9xm7A6CkykkqAvTNYXyeYxbhFwJwkVOo36fItt11z_V40wa2irtKmINeV33RjId28mZ4a_5-0Bnx"
+      ]
+    },
+    {
+      "title": "They are keepers!",
+      "text": "Love them! Bought my usual size 10 and they are perfect not to mention super CUTE! I saw some reviews stating they run narrow - that isn’t my experience. They seem true to size for me. Laces are unique but I like the chunky style - it’s fun and different.",
+      "user_name": "Rachael",
+      "source": "scheels.com",
+      "rating": 5,
+      "date": "a month ago",
+      "icon": "https://lh3.googleusercontent.com/shsm/AGYqVK1vz-S2VsmmlEpImsSlana_My6AV0EQ8wlqAk1SpCJhWCUhs363m5qpAgsN3RuHtdw5gQ=w40-h40-c0x00000000-cc",
+      "images": [
+        "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcRDSQptBBg1BVVXj-ymW1vmhRHDHgS7QBmQ7jbdEmPDELpsODHw",
+        "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcTjFhWJiWMO4Xu1uRwMaAHVr94RF_ygRhY6SAP7ALdnS8klNEwq"
+      ]
+    },
+    {
+      "title": "so stinking cute and so so cushy / comfy",
+      "text": "I don’t have wide feet but these fit true to size for me. The width actually stretched out for me but I wore them just as they were shipped. I didn’t change how the shoelaces were put on except to tighten them. They go with almost every casual outfit I do. I got chestnut bc sand looks washed out. My only issue is that UGGs are no longer 100% real sherpas on these but the price is still high. Even the amount of plush inside is so little! I mean UGGS are known for quality material and putting more real Sherpa inside so what is the deal? Lower the price if you are reducing and using recycled and synthetics. I get being green but you are reusing our donated stuff.",
+      "user_name": "2cute2poot",
+      "source": "nordstrom.com",
+      "rating": 4,
+      "date": "a year ago",
+      "icon": "https://lh3.googleusercontent.com/shsm/AGYqVK2Uwdzxog4PxXrJr0ILGnXRXw0jhnNlnhDmYhUAdNqILfvlHXkhr2tyKP3k5zLc-Cmt=w40-h40-c0x00000000-cc",
+      "images": [
+        "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcQ3aX7wAxeX1TKa6zCCnQTqDqt7EJB87FZGb-3W5McXAlCueWzvs7cagr29n4JyMWX4livQUOmIhxKe-YGPty80dRz52MIn"
+      ]
+    },
+    {
+      "title": "Christmas Came Early For My Wife",
+      "text": "I ordered a pair Of Uggs for my wife for Christmas. When they arrived she immediately tried them on and fell in love with them. She said they were so comfortable on her feet.",
+      "user_name": "Dior",
+      "source": "macys.com",
+      "rating": 5,
+      "date": "2 months ago",
+      "icon": "https://lh3.googleusercontent.com/shsm/AGYqVK0XQ8coBhX-OH4poEjVv3i0GiRy5O04L7rnVLO03q8Becs1J44yHWjDsZQGY9KWHIldPw=w40-h40-c0x00000000-cc",
+      "images": [
+        "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcTPpK7mJFsdjYstGN4iIbL5uSczLE1X3HI5Af-211pTR4DQZALk9HVifQLX3cyS8G-eTyokVBXBTLcxwwFokI9ZQBVesS44"
+      ]
+    }
+  ],
+  "videos": [
+    {
+      "title": "The UGG Lowmel Sneaker: Watch before buying! On Foot Review ...",
+      "link": "https://www.youtube.com/watch?v=wl4toeIXY1Q",
+      "source": "YouTube",
+      "channel": "ShadeTV",
+      "duration": "5:47",
+      "thumbnail": "https://i.ytimg.com/vi/wl4toeIXY1Q/mqdefault.jpg?sqp=-oaymwEGCMACELQB&rs=AMzJL3mVHopz37KPLlwIWfkaOPmjh-LWEQ",
+      "preview": "https://encrypted-vtbn0.gstatic.com/video?q=tbn:ANd9GcQApBSpbqJ7D9T5Tfg7UePrMR68yIQXqHn0jg"
+    },
+    {
+      "title": "The colourway @ugg lowmel",
+      "link": "https://www.instagram.com/reel/DOYQgo5iBwc/",
+      "source": "Instagram",
+      "channel": "JD Women",
+      "duration": "0:08",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWEByj7owbQPPr2a7C9RVAj8eXNduwEd3Bmnl9kSMulGPkfQ&s"
+    },
+    {
+      "title": "OD’s Designer Clothing on Instagram: \"Women’s UGG Lowmel ...",
+      "link": "https://www.instagram.com/reel/DPZKM27DKQz/?hl=en",
+      "source": "Instagram",
+      "channel": "OD’s Designer Clothing",
+      "duration": "0:15",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTgFRLjHcsxMrrP7vgdQiptZJCLx_P9z3-YQsclExDhZaNLDw&s"
+    },
+    {
+      "title": "UGG Lo Lowmel Unboxing Experience 🤍",
+      "link": "https://www.tiktok.com/@lottefronen/video/7555143240094207264",
+      "source": "TikTok",
+      "channel": "lottefronen",
+      "duration": "0:57",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMq0eP5XMLh-iFRi_pgTlF4nD0wmNorxzMv-JH9s_dxQBzgQ&s",
+      "preview": "https://encrypted-vtbn0.gstatic.com/video?q=tbn:ANd9GcTpS-PBmspuLyjLHy-lVia1WQVSNEewUnXsTQ"
+    },
+    {
+      "title": "The UGG Lowmel in Sand",
+      "link": "https://www.pinterest.com/pin/the-ugg-lowmel-in-sand-video-in-2025--585749495324895935/",
+      "source": "Pinterest",
+      "channel": "hansenshoes",
+      "duration": "0:07",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8w0uSCVzw_s7aevdzvCPMbypXGKrFIXK3oCk99Y2CB8lr5w&s"
+    },
+    {
+      "title": "Review UGG Women’s Lowmel Sneaker, Chestnut, 8",
+      "link": "https://www.youtube.com/watch?v=Pjn7KbUnzWY",
+      "source": "YouTube",
+      "channel": "Watt Worth It",
+      "duration": "2:36",
+      "thumbnail": "https://i.ytimg.com/vi/Pjn7KbUnzWY/mqdefault.jpg?sqp=-oaymwEGCMACELQB&rs=AMzJL3mFZNdeEoV0xG95N8M4nqrpZJektQ"
+    },
+    {
+      "title": "in love w them 😽 #ugg #lowmel | ugg lowmel",
+      "link": "https://www.tiktok.com/@user296827339623/video/7574946101904624917",
+      "source": "TikTok",
+      "channel": "user296827339623",
+      "duration": "0:07",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRQR_w8SHEj43tUhW7SW5z9D9PYQqY7yRDFjlCt1m941tjIBQ&s"
+    },
+    {
+      "title": "Ugg Lowmel Trainers in Ceramic – Stylish Comfort",
+      "link": "https://www.tiktok.com/@jdwomen/video/7538836316847443222",
+      "source": "TikTok",
+      "channel": "jdwomen",
+      "duration": "0:11",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKkj9Ize5rwn0iimv5D_Fdci_pr4sLnjTA4EBVpA_9OimBMg&s"
+    },
+    {
+      "title": "UGG Women’s Lowmel Leather Trainers: Style for Winter",
+      "link": "https://www.tiktok.com/@ods.designerclothing/video/7559178293216300310",
+      "source": "TikTok",
+      "channel": "ods.designerclothing",
+      "duration": "0:15",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTt0MANsvGV3O9o3nLcSnU3hZYph4WUD6UFdWd2mZmp7YfZw&s"
+    },
+    {
+      "title": "Ugg Women’s Lowmel",
+      "link": "https://www.instagram.com/reel/DCyUiP6ohJR/",
+      "source": "Instagram",
+      "channel": "tagge_shoes",
+      "duration": "0:10",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpdhHl4Nl_rWChfh4HiCd2G5A3Y2Jo7WbDmCp0zmXNB8TQyQ&s"
+    },
+    {
+      "title": "Stylish UGGs Lowmel Sneakers Outfits You’ll Love",
+      "link": "https://www.tiktok.com/@briannazlea/video/7551558919793970487",
+      "source": "TikTok",
+      "channel": "briannazlea",
+      "duration": "0:07",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFCTAFKTObtrQlU3hT1qhki6wtKccjIJGZHHruZYW6uugofQ&s"
+    },
+    {
+      "title": "OD’s Designer Clothing on Instagram: \"Women’s UGG Lowmel ...",
+      "link": "https://www.instagram.com/reel/DOiZ1X9jERB/",
+      "source": "Instagram",
+      "channel": "OD’s Designer Clothing",
+      "duration": "0:35",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCPcWmx2-9Nxs2YC6z0bR9yCWIEF6TKh-9zU5R9VpddhQP7g&s",
+      "preview": "https://encrypted-vtbn0.gstatic.com/video?q=tbn:ANd9GcTV0mtLzFZoQXDI1QrLhS8oFBKiZcgTI_5HdA"
+    }
+  ],
+  "discussions_and_forums": [
+    {
+      "title": "When uggs Lowmel Restock? : r/ugg",
+      "link": "https://www.reddit.com/r/ugg/comments/1fsa5ui/when_uggs_lowmel_restock/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "a year ago",
+      "comments": 3,
+      "items": [
+        {
+          "snippet": "remind me if you know i want them too",
+          "link": "https://www.reddit.com/r/ugg/comments/1fsa5ui/comment/lq7qdr5/",
+          "top_answer": true,
+          "votes": 1
+        },
+        {
+          "snippet": "What color are you looking for",
+          "link": "https://www.reddit.com/r/ugg/comments/1fsa5ui/comment/lq8xedn/",
+          "votes": 1
+        }
+      ]
+    },
+    {
+      "title": "do the lowmels actually look like this? or are the soles thicker? : r/ugg",
+      "link": "https://www.reddit.com/r/ugg/comments/1gddpdj/do_the_lowmels_actually_look_like_this_or_are_the/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "a year ago",
+      "comments": 3,
+      "items": [
+        {
+          "snippet": "The sole are thicker ! This could be kids ! The sole to the kids sizes are not as thick",
+          "link": "https://www.reddit.com/r/ugg/comments/1gddpdj/comment/lu18w3v/",
+          "top_answer": true,
+          "votes": 1
+        },
+        {
+          "snippet": "You welcome",
+          "link": "https://www.reddit.com/r/ugg/comments/1gddpdj/comment/lu19443/",
+          "votes": 1
+        }
+      ]
+    },
+    {
+      "title": "I tried Ugg's Lowmel sneaker - I think the ladies will love em. 90's / Y2K vibe with chunky laces and great for winter : r/Sneakers",
+      "link": "https://www.reddit.com/r/Sneakers/comments/1i56sze/i_tried_uggs_lowmel_sneaker_i_think_the_ladies/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "10 months ago",
+      "items": [
+        {
+          "snippet": "90's / y2k vibe with chunky laces and great for winter",
+          "link": "https://www.reddit.com/r/Sneakers/comments/1i56sze/i_tried_uggs_lowmel_sneaker_i_think_the_ladies/#:~:text=90's%20/%20y2k%20vibe%20with%20chunky%20laces%20and%20great%20for%20winter"
+        },
+        {
+          "snippet": "90's / Y2K vibe with chunky laces and great for winter",
+          "link": "https://www.reddit.com/r/Sneakers/comments/1i56sze/i_tried_uggs_lowmel_sneaker_i_think_the_ladies/#:~:text=90's%20/%20Y2K%20vibe%20with%20chunky%20laces%20and%20great%20for%20winter"
+        }
+      ]
+    },
+    {
+      "title": "Find/Interest Check: UGG Lowmel Sneakers. : r/ShoesBagsHighfashion",
+      "link": "https://www.reddit.com/r/ShoesBagsHighfashion/comments/1gooj75/findinterest_check_ugg_lowmel_sneakers/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "a year ago"
+    },
+    {
+      "title": "FAKE ALERT ugg LOWMEL : r/ugg",
+      "link": "https://www.reddit.com/r/ugg/comments/1h3sc8b/fake_alert_ugg_lowmel/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "a year ago"
+    },
+    {
+      "title": "UGG Lowmel from noi_store : r/RepladiesDesigner",
+      "link": "https://www.reddit.com/r/RepladiesDesigner/comments/1idrafd/ugg_lowmel_from_noi_store/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "10 months ago"
+    },
+    {
+      "title": "Lowmel : r/ugg",
+      "link": "https://www.reddit.com/r/ugg/comments/1h6tfe2/lowmel/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "a year ago"
+    },
+    {
+      "title": "Finding the best deal on Uggs - help!",
+      "link": "https://www.mumsnet.com/talk/style_and_beauty/3475181-Finding-the-best-deal-on-Uggs-help",
+      "source": "Mumsnet",
+      "icon": "https://encrypted-tbn3.gstatic.com/faviconV2?url=https://www.mumsnet.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "6 years ago"
+    },
+    {
+      "title": "Lowmel sizing : r/ugg",
+      "link": "https://www.reddit.com/r/ugg/comments/1gs1gh1/lowmel_sizing/",
+      "source": "Reddit",
+      "icon": "https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.reddit.com&client=SHOPPING&size=16&type=FAVICON&fallback_opts=TYPE,SIZE,URL",
+      "date": "a year ago"
+    }
+  ],
+  "more_options": [
+    {
+      "title": "UGG Women's Highmel",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcR1MNHfM8TkFYhYiJy3zxXPKwgumkEYIPCvN2Fbuo0zJzMhGjo3LHWUqKROvKOEEf2C5KSZRKWamajJfxNW8iOj2JUC0RC1zwczG9BE1UjkNooiBH3s8mwr",
+      "price": "$160.00",
+      "extracted_price": 160.0,
+      "reviews": 68,
+      "rating": 4.7,
+      "serpapi_link": "https://serpapi.com/search.json?engine=google_immersive_product&page_token=eyJlaSI6InozWkJhWjZHQ1lMZHdONFAzcE9Xa0FvIiwiY2F0YWxvZ2lkIjoiNTQxMDc5MTExNDE3NTg4NzI5NiIsImhlYWRsaW5lT2ZmZXJEb2NpZCI6IjExMjYzNTg4MjM4MjE2NjY2NDA4IiwiaW1hZ2VEb2NpZCI6IjQxNzYwOTUxMDYwMzU3Nzk3MjQiLCJyZHMiOiJQQ18xNjM1NjkzNDc0ODE3NTg5MTUzOXxQUk9EX1BDXzE2MzU2OTM0NzQ4MTc1ODkxNTM5IiwicXVlcnkiOiJibGFjayt3aW50ZXIrc25lYWtlcnMiLCJncGNpZCI6IjE2MzU2OTM0NzQ4MTc1ODkxNTM5IiwibWlkIjoiNTc2NDYyNzQ2NDk5MTg0NzIyIiwicHZ0IjoiYSIsInV1bGUiOiJ3K0NBSVFJQ0lhUVhWemRHbHVMRlJsZUdGekxGVnVhWFJsWkNCVGRHRjBaWE0iLCJnbCI6InVzIiwiaGwiOiJlbiIsInB2ZiI6bnVsbH0%3D"
+    },
+    {
+      "title": "UGG Women's Lowmel Trainers",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRIk4a3qBzfHWG714JAQROJHt7uIpDyE-s1NAPXyACCTCQ1EeiNlCg3QOMugK0pmyhB2Ktv5v_K4E0dhQDE8u8HdqIRojycupH3DLxoYPTmDWBSPhUOIuBP",
+      "price": "$99.99",
+      "extracted_price": 99.99,
+      "reviews": 36,
+      "rating": 4.7,
+      "serpapi_link": "https://serpapi.com/search.json?engine=google_immersive_product&page_token=eyJlaSI6InozWkJhWjZHQ1lMZHdONFAzcE9Xa0FvIiwiY2F0YWxvZ2lkIjoiMTgyNTI5Mjc1NjM1NjYwMDIyNzUiLCJoZWFkbGluZU9mZmVyRG9jaWQiOiIxODA3MzY5OTk0OTI2ODE2MDkxMyIsImltYWdlRG9jaWQiOiI5MDExNDQ4MjgyMjIwNzE0OTMyIiwicmRzIjoiUENfNjU3NTAwMjMyMTgwNDUwMDYwN3xQUk9EX1BDXzY1NzUwMDIzMjE4MDQ1MDA2MDciLCJxdWVyeSI6ImJsYWNrK3dpbnRlcitzbmVha2VycyIsImdwY2lkIjoiNjU3NTAwMjMyMTgwNDUwMDYwNyIsIm1pZCI6IjU3NjQ2Mjg3NDEyNjQ3MzAzNCIsInB2dCI6ImEiLCJ1dWxlIjoidytDQUlRSUNJYVFYVnpkR2x1TEZSbGVHRnpMRlZ1YVhSbFpDQlRkR0YwWlhNIiwiZ2wiOiJ1cyIsImhsIjoiZW4iLCJwdmYiOm51bGx9"
+    },
+    {
+      "title": "Ugg Mens Lowmel Low-top Suede Trainers",
+      "thumbnail": "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcQfYu5k_7Y7fjRcl99iMZ5SuyQY1PYFsd1x12Nut8IqrvxmKybWmlH6WKhjkpafgICwPOYjb9RyXl1i01nVlPYsiiOp3r-rAmxevvbtbFS-aKlvEbjab5u12aU",
+      "price": "$149.00",
+      "extracted_price": 149.0,
+      "reviews": 2,
+      "rating": 5.0,
+      "serpapi_link": "https://serpapi.com/search.json?engine=google_immersive_product&page_token=eyJlaSI6InozWkJhWjZHQ1lMZHdONFAzcE9Xa0FvIiwiY2F0YWxvZ2lkIjoiNDE5MTM1MDYwNTAyNDQ3OTQ2NSIsImhlYWRsaW5lT2ZmZXJEb2NpZCI6IjIzNzY1NzY4MTk1NzQ0NDU5OCIsImltYWdlRG9jaWQiOiIxNDQ3NDEzODE1Mjc2NTAwMTEyOSIsInJkcyI6IlBDXzEzNTMwODE4MDE1MzczNzE4OTIxfFBST0RfUENfMTM1MzA4MTgwMTUzNzM3MTg5MjEiLCJxdWVyeSI6ImJsYWNrK3dpbnRlcitzbmVha2VycyIsImdwY2lkIjoiMTM1MzA4MTgwMTUzNzM3MTg5MjEiLCJtaWQiOiI1NzY0NjI4Mjc2MzM1MjExMjkiLCJwdnQiOiJhIiwidXVsZSI6IncrQ0FJUUlDSWFRWFZ6ZEdsdUxGUmxlR0Z6TEZWdWFYUmxaQ0JUZEdGMFpYTSIsImdsIjoidXMiLCJobCI6ImVuIiwicHZmIjpudWxsfQ%3D%3D"
+    },
+    {
+      "title": "Ugg Lowmel Black Women's - 1144032-blk",
+      "thumbnail": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcQXPuJmsk2GiKd9oz1chPq1tFzWAOYaPXYyvi_RdpALrDSF61wEtQAVZKcuYLYNAGl4BXjRH0cV6S7y9kLTq47HS0oXEnK_2hd_l4adic8blQbMd04NxfBhzw",
+      "price": "$192.00",
+      "extracted_price": 192.0,
+      "original_price": "$240",
+      "extracted_original_price": 240,
+      "reviews": 404,
+      "rating": 4.7,
+      "serpapi_link": "https://serpapi.com/search.json?engine=google_immersive_product&page_token=eyJlaSI6InozWkJhWjZHQ1lMZHdONFAzcE9Xa0FvIiwiY2F0YWxvZ2lkIjoiMTE2NDAyMDYzMzQ5MjQ4ODUwMzkiLCJoZWFkbGluZU9mZmVyRG9jaWQiOiIxODAzMzU1NzM0MjMzMTA5NDA1IiwiaW1hZ2VEb2NpZCI6IjQ4MjE5ODEwMTM5ODU4Mjk5NDAiLCJyZHMiOiJQQ18xNTM5MzY0MTg5NTI5NDIyNzAwOXxQUk9EX1BDXzE1MzkzNjQxODk1Mjk0MjI3MDA5IiwicXVlcnkiOiJibGFjayt3aW50ZXIrc25lYWtlcnMiLCJncGNpZCI6IjEyODk3MDQxNDgwMjU5NTYyNTM0IiwibWlkIjoiNTc2NDYyNDU5NzI2ODA0ODg4IiwicHZ0IjoiYSIsInV1bGUiOiJ3K0NBSVFJQ0lhUVhWemRHbHVMRlJsZUdGekxGVnVhWFJsWkNCVGRHRjBaWE0iLCJnbCI6InVzIiwiaGwiOiJlbiIsInB2ZiI6bnVsbH0%3D"
+    },
+    {
+      "title": "UGG Men's Heritage Utility Sneaker",
+      "thumbnail": "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcSueM5bhLIkQyvMwGVCGSCGhG0qmHvOv6R44fAaxwYqdUlyQfzxuEvE-x3HZD33ewX7EKJpwSkGx2wMLJJ2Os_qxAafdbqZaz_bWnXaPQyvaDe8ntmQZMD0Qw",
+      "price": "$169.95",
+      "extracted_price": 169.95,
+      "reviews": 7,
+      "rating": 5.0,
+      "serpapi_link": "https://serpapi.com/search.json?engine=google_immersive_product&page_token=eyJlaSI6InozWkJhWjZHQ1lMZHdONFAzcE9Xa0FvIiwiY2F0YWxvZ2lkIjoiODE0NTI5MzU2NzU4MTM2MTY0NCIsImhlYWRsaW5lT2ZmZXJEb2NpZCI6IjQwNDM4ODg5MzIxOTUzODE2NDciLCJpbWFnZURvY2lkIjoiMTI2MzQwMzQxNDM3MjYyODgwNTUiLCJyZHMiOiJQQ18zODMyNTIwMDgyMDkwNzI4NTQ2fFBST0RfUENfMzgzMjUyMDA4MjA5MDcyODU0NiIsInF1ZXJ5IjoiYmxhY2srd2ludGVyK3NuZWFrZXJzIiwiZ3BjaWQiOiIzODMyNTIwMDgyMDkwNzI4NTQ2IiwibWlkIjoiNTc2NDYyNDU5NzI2ODA0ODg4IiwicHZ0IjoiYSIsInV1bGUiOiJ3K0NBSVFJQ0lhUVhWemRHbHVMRlJsZUdGekxGVnVhWFJsWkNCVGRHRjBaWE0iLCJnbCI6InVzIiwiaGwiOiJlbiIsInB2ZiI6bnVsbH0%3D"
+    },
+    {
+      "title": "UGG Men's Lowmel",
+      "thumbnail": "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcTjn-LGIUj3N7tmrpMwTdDz4L4pFR78CffWiYz0HktN6NvMPhBiFUaDqnCFWtzKyrHLuioqfEDnTkkHCKLj8vCDq0-jzoVRxwkR9nnd5fA-bQq8F_BBuuGD6g",
+      "price": "$99.99",
+      "extracted_price": 99.99,
+      "original_price": "$150",
+      "extracted_original_price": 150,
+      "reviews": 167,
+      "rating": 4.7,
+      "serpapi_link": "https://serpapi.com/search.json?engine=google_immersive_product&page_token=eyJlaSI6InozWkJhWjZHQ1lMZHdONFAzcE9Xa0FvIiwiY2F0YWxvZ2lkIjoiNjk0NzI5MDQ3ODk0ODYxNDI2NiIsImhlYWRsaW5lT2ZmZXJEb2NpZCI6IjMzODcwOTY5NDI2NDk1ODQwMjEiLCJpbWFnZURvY2lkIjoiNjAyMzA3Mzk1MjEwNjkzMDc5NSIsInJkcyI6IlBDXzE1MzkzNjQxODk1Mjk0MjI3MDA5fFBST0RfUENfMTUzOTM2NDE4OTUyOTQyMjcwMDkiLCJxdWVyeSI6ImJsYWNrK3dpbnRlcitzbmVha2VycyIsImdwY2lkIjoiMTUzOTM2NDE4OTUyOTQyMjcwMDkiLCJtaWQiOiI1NzY0NjI4NjU4MzAxMDYxNzQiLCJwdnQiOiJhIiwidXVsZSI6IncrQ0FJUUlDSWFRWFZ6ZEdsdUxGUmxlR0Z6TEZWdWFYUmxaQ0JUZEdGMFpYTSIsImdsIjoidXMiLCJobCI6ImVuIiwicHZmIjpudWxsfQ%3D%3D"
+    }
+  ]
+}
