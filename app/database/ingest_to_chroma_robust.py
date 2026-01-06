@@ -124,7 +124,7 @@ def zalando_family_from_name(name: str) -> str:
 
 
 def ingest_chroma_zalando_mango_zara():
-    MANGO_CSV = os.getenv("MANGO_CSV", "./data/Mango Products Prepared.csv")
+    MANGO_CSV = os.getenv("MANGO_CSV", "./data/Mango Products Cleaned.csv")
     ZALANDO_CSV = os.getenv("ZALANDO_CSV", "./data/Zalando products Cleaned.csv")
     ZARA_CSV = os.getenv("ZARA_CSV", "./data/Zara - Products Cleaned.csv")
 
