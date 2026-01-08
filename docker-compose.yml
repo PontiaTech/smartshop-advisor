@@ -9,7 +9,7 @@ services:
     environment:
       - CHROMA_SERVER_ALLOW_RESET=true
     volumes:
-      - ./chroma_db:/chroma/chromadb
+      - ./chroma_db:/data
     networks:
       - smartshopadvisor-net
 

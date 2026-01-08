@@ -15,6 +15,7 @@ sbert_model/
 ssa-db_params.env
 .env
 
-# Ignorar data
+# Ignorar data y chroma_db
 
 /data/
+/chroma_db
