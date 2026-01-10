@@ -7,6 +7,9 @@ WORKDIR /app
 # Copiamos archivos necesarios
 COPY requirements.txt .
 
+# Copiar tests
+COPY ./tests /app/tests
+
 # Instalar dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
