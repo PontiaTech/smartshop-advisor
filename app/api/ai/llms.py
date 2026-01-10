@@ -15,7 +15,7 @@ load_dotenv()
     
     
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or None
-GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME") or "gemini-1.5-flash"
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME") or "gemini-2.5-flash"
 
 if not GEMINI_API_KEY:
     raise NotImplementedError("'GEMINI_API_KEY' was not implemented")
