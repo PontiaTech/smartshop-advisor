@@ -41,7 +41,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_PRIVATE_KEY }}
           script: |
-            cd /home/ec2-user/smartshop
-            docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            docker-compose down
-            docker-compose up -d
+            cd /smartshop
+            sudo docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            sudo docker-compose down
+            sudo docker-compose up -d
