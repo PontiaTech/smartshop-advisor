@@ -41,7 +41,14 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_PRIVATE_KEY }}
           script: |
-            cd /home/ec2-user/smartshop
-            docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            docker-compose down
-            docker-compose up -d
+            cd /smartshop
+            echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            sudo docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            sudo docker stop smartshop-advisor || true
+            sudo docker rm smartshop-advisor || true
+
+            sudo docker run -d \
+              --name smartshop-advisor \
+              -p 8000:8000 \
+              ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            
