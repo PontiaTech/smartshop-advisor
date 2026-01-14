@@ -28,6 +28,7 @@ if not GEMINI_API_KEY:
 #     base_url=OPENAI_BASE_URL
 # )
 
+# función para declarar el LLM y poder usarlo comodamente desde la API
 def get_llm():
     # if LLM_PROVIDER == "ollama":
     #     if ChatOllama is None:

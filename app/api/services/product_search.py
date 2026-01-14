@@ -90,7 +90,7 @@ def get_chroma_collection():
         _client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     return _client.get_or_create_collection(name=COLLECTION_NAME)
 
-
+# Normalizacion de textos
 def _norm(s: str) -> str:
     s = fix_mojibake(s or "")
     s = s.lower()
@@ -108,6 +108,7 @@ def _contains_any(text: str, terms: list[str]) -> bool:
         if re.search(rf"\b{re.escape(tt)}\b", text):
             return True
     return False
+
 
 def basic_search(query: str, n_results: int = 10) -> List[Dict[str, Any]]:
     """Primero buscamos por texto en la BDD vectorial."""
@@ -271,7 +272,7 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
     if not candidates:
         return {"predicted_type": predicted_type, "results": []}
 
-    # Ajusta pesos efectivos de categoría en función de si hay señal real en candidatos
+    # Ajuste de los pesos efectivos de categoría en función de si hay señal real en candidatos
     imp_cat_eff = compute_imp_cat_eff(predicted_type, candidates, imp_cat)
 
     # Embedding del texto en espacio CLIP
@@ -286,8 +287,6 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
         img_url = c.get("image")
         text_score = float(c.get("text_score", 0.0))
 
-        # OJO: con la nueva ingesta, basic_search debería rellenar "product_family"
-        # desde family_for_search/family_raw (y también "color" si lo añadiste).
         product_family = c.get("product_family")
         cat_boost = category_boost(
             predicted_type=predicted_type,
@@ -306,7 +305,7 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
                 denom = float(np.linalg.norm(text_emb) * np.linalg.norm(img_emb))
                 clip_score = num / denom if denom != 0 else -1.0
 
-        # Normalizamos sim a [0,1]
+        # Normaliza simimilitud a [0,1]
         clip_sim = (clip_score + 1.0) / 2.0
 
         if clip_score != -1.0:
@@ -316,7 +315,7 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
         c["clip_sim"] = clip_sim
         c["category_boost"] = cat_boost
 
-        # Keyword match: mezcla name/desc/familia/color/source para capturar señales literales
+        # Keyword match
         kw_text = " ".join([
             c.get("product_name", ""),
             c.get("description", ""),
@@ -330,7 +329,7 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
         # Score base
         base = imp_text * text_score + imp_image * clip_sim + imp_cat_eff * cat_boost
 
-        # Mezcla final (keyword aporta un empujón pequeño pero útil)
+        # Score final
         c["score"] = 0.85 * base + 0.15 * kw
         
         fam = _norm(c.get("product_family", ""))
@@ -339,19 +338,19 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
 
         quality_penalty = 0.0
 
-        # family vacía o muy poco informativa
+        # family vacía o poco intuitiva
         if not fam or fam in {"", "n/a", "na", "none"}:
             quality_penalty += 0.05
 
-        # descripción demasiado corta (suele ser mala señal)
+        # descripción demasiado corta
         if len(desc) < 25:
             quality_penalty += 0.05
 
-        # descripción casi igual al nombre (ingesta repetida / poco informativa)
+        # descripción casi igual al nombre
         if _norm(desc) and _norm(name) and _norm(desc)[:60] == _norm(name)[:60]:
             quality_penalty += 0.05
 
-        # si keyword match es bajo, penaliza extra (evita "botas" en "vaqueros negros")
+        # si keyword match es bajo, penalizamos
         if kw < 0.34:
             quality_penalty += 0.08
         elif kw < 0.50:
@@ -362,7 +361,7 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
 
         scored.append(c)
 
-    # Si NO hay ninguna imagen usable, recalcula score sin el componente de imagen
+    # Si no hay ninguna imagen decente, recalcula score sin el componente de imagen
     if clip_available == 0:
         for c in scored:
             text_score = float(c.get("text_score", 0.0))
@@ -379,24 +378,23 @@ def complete_search(query: str, n_results: int = 5, candidates_k: int = 20, imp_
     
     base_thr = 0.68
 
-    # si la query trae señal clara, sube el umbral (más precisión)
+    # si la query trae sujeto o intuición clara, subimos la precision
     if len(query_kws) >= 3:
         base_thr += 0.05
 
-    # si la query es corta tipo "y de deporte?", baja para no quedarte sin nada
+    # si la query es corta tipo "y de deporte?", bajamos
     if len(query.split()) <= 3:
         base_thr -= 0.05
 
-    # si hay un ganador claro, el resto suele ser ruido -> sube el listón
+    # si hay un resultado con buen score
     if len(scored) >= 3:
         gap = float(scored[0].get("score", 0.0)) - float(scored[2].get("score", 0.0))
         if gap > 0.12:
             base_thr += 0.04
 
-    # clamp seguro
     base_thr = min(max(base_thr, 0.55), 0.80)
 
-    # Filtro opcional para evitar basura (mantengo tu lógica)
+    # Filtro para filtrar aun mas resultados basura, poh si acasp
     filtered = [x for x in scored if float(x.get("score", 0.0) or 0.0) >= 0.6]
     top = (filtered[:n_results]) if filtered else (scored[:n_results])
 

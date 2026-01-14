@@ -31,6 +31,7 @@ def safe_str(x):
     return str(x).strip()
 
 
+# funcion para arreglar formatos raros y caractreses especiales.
 def fix_mojibake(s: str) -> str:
     s = safe_str(s)
     if not s:
@@ -50,7 +51,7 @@ def norm_text(s: str) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
-
+# diccionarios de colores
 COLOR_MAP = {
     "black": ["black", "negro", "noir", "schwarz", "nero", "preto", "antracita", "anthracite"],
     "white": ["white", "blanco", "blanc", "weiss", "weiß", "bianco", "branco", "ivory", "marfil", "crema"],
@@ -65,6 +66,7 @@ COLOR_MAP = {
     "orange":["orange", "naranja"],
 }
 
+# muchos prodictos vienen con coloes en varios idiomas y esta funcion ayuda a pasrlos todos al mismo idioma
 def canonicalize_color(raw_color: str) -> tuple[str, str]:
     raw_clean = norm_text(fix_mojibake(raw_color))
     if not raw_clean:
@@ -77,7 +79,6 @@ def canonicalize_color(raw_color: str) -> tuple[str, str]:
             if vv and re.search(rf"\b{re.escape(vv)}\b", raw_clean):
                 return canon, raw_clean
 
-    # Si no hay match, no inventes canónico, pero conserva raw_clean
     return "", raw_clean
 
 
@@ -115,11 +116,10 @@ def zalando_family_from_name(name: str) -> str:
         return ""
 
     parts = [p.strip() for p in s.split("-") if p.strip()]
-    # Normalmente: [<titulo>, <familia>, <color>]
     if len(parts) >= 3:
-        return parts[-2]  # la penúltima parte suele ser la categoría
+        return parts[-2]
     if len(parts) == 2:
-        return parts[-1]  # fallback
+        return parts[-1]
     return ""
 
 
@@ -143,7 +143,7 @@ def ingest_chroma_zalando_mango_zara():
         metadata={"hnsw:space": "cosine"}
     )
 
-    # SOLO Mango lo leemos tolerante por el CSV roto (línea 6)
+
     df_mango = pd.read_csv(
         MANGO_CSV,
         sep=";",
@@ -230,7 +230,6 @@ def ingest_chroma_zalando_mango_zara():
     #     df["product_family"]
     # )
 
-    # # Color para búsqueda: canónico si existe; si no, raw limpio
     # df["color"] = df["canonical_color"].where(
     #     df["canonical_color"].astype(str).str.strip() != "",
     #     df["raw_color_clean"]
@@ -244,7 +243,7 @@ def ingest_chroma_zalando_mango_zara():
         if col in df.columns:
             df[col] = df[col].apply(fix_mojibake)
 
-    # Color: canónico si matchea, si no raw limpio (como ya tenías)
+    # Color: canónico si matchea, si no raw limpio
     tmp_color = df.apply(
         lambda r: canonicalize_color(r.get("raw_color", "")),
         axis=1
@@ -255,7 +254,7 @@ def ingest_chroma_zalando_mango_zara():
         df["raw_color_clean"]
     )
 
-    # Familia para búsqueda: por ahora, NO inventamos canon
+    # Familia para búsqueda: por ahora, no inventamos canon
     # Usamos la señal más fiable por fuente: family_raw
     df["family_for_search"] = df["family_raw"]
 
