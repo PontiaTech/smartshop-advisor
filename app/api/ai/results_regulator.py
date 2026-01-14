@@ -2,6 +2,7 @@ from fastapi import HTTPException
 import json
 # from app.api.schemas import CompleteSearchProduct, ChatRequest, ChatResponse, WebSearchProduct
 
+# funcion helper para que el LLM juez pueda determinar si son relevantes o no
 def compact_products_for_judge(raw_results: list[dict], limit: int = 8) -> str:
     lines = []
     for i, r in enumerate((raw_results or [])[:limit], start=1):

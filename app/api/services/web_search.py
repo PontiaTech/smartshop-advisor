@@ -21,16 +21,11 @@ client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
 logger = logging.getLogger("smartshop.websearch")
 
-# Si no tienes logging_config global, al menos esto:
-# (si ya lo configuras en otro sitio, borra estas 2 líneas)
 if not logger.handlers:
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 
 
-# -------------------------
-# Helpers
-# -------------------------
-
+# algunas funciones para limpieza de formato de las urls y otros campos
 
 def _safe_url(u: str) -> str:
     """
@@ -72,6 +67,7 @@ def _guess_color_from_title(title: str) -> str:
     return ""
 
 
+# Como la API te devuelve una pool de 40 resultados mas o menos lo he puesto para que solo saque los mejores y asi no traemos todo y saturamos el rsultdo
 def pick_best(items: list[dict], k: int = 3) -> list[dict]:
     def r(x): return float(x.get("rating") or 0.0)
     def n(x): return int(x.get("reviews") or 0)
@@ -129,17 +125,8 @@ def _safe_get(d, k):
         return ""
 
 
-# -------------------------
-# Main
-# -------------------------
-
-async def web_search_products(
-    query: str,
-    k: int = 3,
-    lang: str = "es",
-    pool_size: int = 20,
-    location: str | None = None,
-) -> list[dict]:
+# funcion principal de la busqueda web
+async def web_search_products(query: str, k: int = 3, lang: str = "es", pool_size: int = 20, location: str | None = None, ) -> list[dict]:
     if not SERPAPI_API_KEY:
         logger.warning("SERPAPI_API_KEY not set -> returning []")
         return []
@@ -149,7 +136,7 @@ async def web_search_products(
         logger.info("Empty query or k<=0 (q=%r, k=%s) -> returning []", q, k)
         return []
 
-    # Forzamos estos valores por el tema de la descripción
+    # Forzamos estos valores por el tema de la descripción, porque en español moo me lo cogia bien
     hl = "en"
     gl = "us"
     loc = location or "Austin, Texas, United States"
@@ -305,12 +292,12 @@ async def web_search_products(
             pid = _safe_str(base.get("product_id"))
             logger.info("Enriching item %d/%d title=%r pid=%r", idx, len(best), title, pid)
 
-            # prefer snippet
+            # teniamos problemas para sacar la descripción de alguns productos por lo que buscamos en el snippets
             desc = _safe_str(base.get("snippet") or base.get("description") or "")
             if desc:
                 logger.debug("Desc from snippet/inline (len=%d)", len(desc))
 
-            # try immersive if still empty
+            # si no me lo saca bien buscamos en otros campos
             if not desc:
                 imm_url = base.get("serpapi_immersive_product_api")
                 if imm_url:

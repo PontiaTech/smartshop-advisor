@@ -46,21 +46,21 @@ from typing import Optional, List
     
 
 # A paula le funciona
-class ResultadoProducto(BaseModel):
-    nombre: str = Field(..., description="Nombre o identificador del producto.")
-    metadatos: dict = Field(..., description="Metadatos asociados al producto.")
-    similitud: float = Field(..., description="Nivel de similitud entre 0 y 1.")
-    enlace: str = Field(..., description="Enlace al producto o página relacionada.")
+# class ResultadoProducto(BaseModel):
+#     nombre: str = Field(..., description="Nombre o identificador del producto.")
+#     metadatos: dict = Field(..., description="Metadatos asociados al producto.")
+#     similitud: float = Field(..., description="Nivel de similitud entre 0 y 1.")
+#     enlace: str = Field(..., description="Enlace al producto o página relacionada.")
 
 
-class RespuestaBusqueda(BaseModel):
-    tipo_predicho: str = Field(..., description="Tipo de producto detectado por el modelo.")
-    resultados: List[ResultadoProducto] = Field(..., description="Productos más similares encontrados.")
+# class RespuestaBusqueda(BaseModel):
+#     tipo_predicho: str = Field(..., description="Tipo de producto detectado por el modelo.")
+#     resultados: List[ResultadoProducto] = Field(..., description="Productos más similares encontrados.")
     
 
 
  
-# Clases necesarias para la funcionalidad completa del chat
+# Clases necesarias para la funcionalidad completa del chat, el resto no las usamos mas y podrian eliminarse
 class CompleteSearchRequest(BaseModel):
     query: str
     top_k: int = 5
